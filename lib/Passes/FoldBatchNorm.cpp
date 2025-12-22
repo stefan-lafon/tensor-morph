@@ -12,7 +12,22 @@ struct FoldBatchNormPass
   MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(FoldBatchNormPass)
 
   void runOnOperation() override {
-    llvm::outs() << "TensorMorph: Scanning for BatchNorm patterns...\n";
+    ModuleOp module = getOperation();
+
+    // Traverse the IR to find the Conv -> BatchNorm chain
+    module.walk([&](Operation *op) {
+      auto opName = op->getName().getStringRef();
+
+      // Look for the NHWC Convolution variant
+      if (opName == "linalg.conv_2d_nhwc_fhwc") {
+        llvm::outs() << "TensorMorph: Found a Convolution (NHWC): " << *op << "\n";
+      }
+
+      // Look for the BatchNorm
+      if (opName == "test.batch_norm") {
+        llvm::outs() << "TensorMorph: Found a BatchNorm to fold: " << *op << "\n";
+      }
+    });
   }
 
   llvm::StringRef getArgument() const final { return "fold-batchnorm"; }
@@ -21,10 +36,6 @@ struct FoldBatchNormPass
 } // namespace
 
 namespace mlir {
-std::unique_ptr<Pass> createFoldBatchNormPass() {
-    return std::make_unique<FoldBatchNormPass>();
-}
-
 void registerFoldBatchNormPass() {
     registerPass([]() -> std::unique_ptr<Pass> {
         return std::make_unique<FoldBatchNormPass>();
