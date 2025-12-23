@@ -10,10 +10,14 @@ target_link_libraries(tensormorph-opt
   MLIRPass
   MLIRIR
   MLIRSupport
-  # Libraries for the registered dialects
+  # Dialect Libraries
   MLIRLinalgDialect
   MLIRArithDialect
   MLIRTensorDialect
   MLIRFuncDialect
   MLIRMemRefDialect
+  MLIRTosaDialect
+  MLIRSCFDialect
+  MLIRMathDialect
+  MLIRBufferizationDialect
 )

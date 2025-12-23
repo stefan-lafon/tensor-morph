@@ -8,15 +8,12 @@ add_library(TensorMorphPasses SHARED
   ${PASS_SOURCES}
 )
 
-# Headers stay the same
 target_include_directories(TensorMorphPasses PRIVATE
   ${PROJECT_SOURCE_DIR}/include
   /usr/lib/llvm-18/include
 )
 
-# CRITICAL FIX: We remove MLIRSupport and other core libs that cause 
-# global variable collisions. We only link what we absolutely need 
-# for the compiler to resolve headers.
+# Link TOSA here so the Pattern Matcher can see TosaOps
 target_link_libraries(TensorMorphPasses
   PRIVATE
   MLIRIR
@@ -26,9 +23,10 @@ target_link_libraries(TensorMorphPasses
   MLIRArithDialect
   MLIRTensorDialect
   MLIRMathDialect
+  MLIRTosaDialect
+  MLIRBufferizationDialect
 )
 
-# Ensure output goes to the right place
 set_target_properties(TensorMorphPasses PROPERTIES
   LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
 )
