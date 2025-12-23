@@ -18,8 +18,6 @@ struct FoldBatchNormPass
 
   void runOnOperation() override {
     ModuleOp module = getOperation();
-
-    // Collect ops to erase later to avoid iterator invalidation
     SmallVector<Operation *> opsToErase;
 
     module.walk([&](Operation *op) {
@@ -31,24 +29,25 @@ struct FoldBatchNormPass
 
         if (convOp && convOp->getName().getStringRef() == "linalg.conv_2d_nhwc_fhwc") {
           
-          // CRITICAL FIX: Move the builder to the CONVOLUTION, not the BatchNorm.
-          // This ensures the math happens BEFORE the conv needs the weights.
           ImplicitLocOpBuilder b(convOp->getLoc(), convOp);
           
           Value weights = convOp->getOperand(1);
           Value gamma   = op->getOperand(1);
+          Value beta    = op->getOperand(2);
+          Value mean    = op->getOperand(3);
           Value var     = op->getOperand(4);
           
           auto weightType = weights.getType().cast<RankedTensorType>();
           auto paramType  = gamma.getType().cast<RankedTensorType>();
+          auto outType    = bnInput.getType().cast<RankedTensorType>();
           auto elementType = paramType.getElementType();
 
-          // 1. Calculate Multiplier (1D): factor = gamma / sqrt(var + eps)
+          // 1. Calculate Multiplier: factor = gamma / sqrt(var + eps)
           Value epsilon = b.create<arith::ConstantOp>(b.getFloatAttr(elementType, 1e-5));
           Value empty1D = b.create<tensor::EmptyOp>(paramType.getShape(), elementType);
           auto map1D = b.getMultiDimIdentityMap(1);
           
-          auto multiplierOp = b.create<linalg::GenericOp>(
+          auto multOp = b.create<linalg::GenericOp>(
             TypeRange{paramType}, ValueRange{var, gamma}, ValueRange{empty1D},
             SmallVector<AffineMap>{map1D, map1D, map1D},
             SmallVector<utils::IteratorType>{utils::IteratorType::parallel},
@@ -59,14 +58,27 @@ struct FoldBatchNormPass
               nb.create<linalg::YieldOp>(loc, m);
             }
           );
-          Value factor = multiplierOp.getResult(0);
+          Value factor = multOp.getResult(0);
 
-          // 2. Broadcast and Fold (4D): W_new = W_old * factor
+          // 2. Calculate New Bias: bias = beta - (factor * mean)
+          auto biasOp = b.create<linalg::GenericOp>(
+            TypeRange{paramType}, ValueRange{beta, factor, mean}, ValueRange{empty1D},
+            SmallVector<AffineMap>{map1D, map1D, map1D, map1D},
+            SmallVector<utils::IteratorType>{utils::IteratorType::parallel},
+            [&](OpBuilder &nb, Location loc, ValueRange args) {
+              Value prod = nb.create<arith::MulFOp>(loc, args[1], args[2]);
+              Value res  = nb.create<arith::SubFOp>(loc, args[0], prod);
+              nb.create<linalg::YieldOp>(loc, res);
+            }
+          );
+          Value newBias = biasOp.getResult(0);
+
+          // 3. Fold Weights: W_new = W_old * factor
           auto map4D = b.getMultiDimIdentityMap(4);
           auto mapBroadcast = AffineMap::get(4, 0, {b.getAffineDimExpr(0)}, b.getContext());
           Value empty4D = b.create<tensor::EmptyOp>(weightType.getShape(), elementType);
           
-          auto foldOp = b.create<linalg::GenericOp>(
+          auto weightFoldOp = b.create<linalg::GenericOp>(
             TypeRange{weightType}, ValueRange{weights, factor}, ValueRange{empty4D},
             SmallVector<AffineMap>{map4D, mapBroadcast, map4D},
             SmallVector<utils::IteratorType>(4, utils::IteratorType::parallel),
@@ -75,17 +87,31 @@ struct FoldBatchNormPass
               nb.create<linalg::YieldOp>(loc, res);
             }
           );
-          Value foldedWeights = foldOp.getResult(0);
+          convOp->setOperand(1, weightFoldOp.getResult(0));
 
-          // 3. Rewire: Update the weights of the Conv
-          convOp->setOperand(1, foldedWeights);
-
-          // 4. Final Cleanup: Bypass the BatchNorm.
-          // Tell anyone using the BN output (like the 'return') to use the Conv output instead.
-          op->replaceAllUsesWith(ValueRange{bnInput});
+          // 4. Apply Bias after Conv: output = conv_result + newBias
+          // We move the builder to AFTER the conv now
+          b.setInsertionPointAfter(convOp);
           
+          auto mapData = b.getMultiDimIdentityMap(4);
+          auto mapBias = AffineMap::get(4, 0, {b.getAffineDimExpr(3)}, b.getContext()); // Map to Channel dim
+          Value emptyOut = b.create<tensor::EmptyOp>(outType.getShape(), elementType);
+
+          auto finalAddOp = b.create<linalg::GenericOp>(
+            TypeRange{outType}, ValueRange{convOp->getResult(0), newBias}, ValueRange{emptyOut},
+            SmallVector<AffineMap>{mapData, mapBias, mapData},
+            SmallVector<utils::IteratorType>(4, utils::IteratorType::parallel),
+            [&](OpBuilder &nb, Location loc, ValueRange args) {
+              Value res = nb.create<arith::AddFOp>(loc, args[0], args[1]);
+              nb.create<linalg::YieldOp>(loc, res);
+            }
+          );
+
+          // 5. Final Rewire
+          op->replaceAllUsesWith(finalAddOp.getResults());
           opsToErase.push_back(op);
-          llvm::outs() << "[TensorMorph] SUCCESS: BatchNorm folded and bypassed.\n";
+          
+          llvm::outs() << "[TensorMorph] SUCCESS: Full Weight + Bias folding complete.\n";
         }
       }
     });
@@ -94,7 +120,7 @@ struct FoldBatchNormPass
   }
 
   llvm::StringRef getArgument() const final { return "fold-batchnorm"; }
-  llvm::StringRef getDescription() const final { return "Fuses BatchNorm into Conv2D weights"; }
+  llvm::StringRef getDescription() const final { return "Fuses BatchNorm into Conv2D weights and adds bias"; }
 };
 } // namespace
 
