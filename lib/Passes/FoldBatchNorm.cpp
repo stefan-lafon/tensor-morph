@@ -1,137 +1,101 @@
+// @title FoldBatchNorm.cpp
 #include "mlir/Pass/Pass.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
-#include "mlir/Dialect/Arith/IR/Arith.h"
-#include "mlir/Dialect/Linalg/IR/Linalg.h"
-#include "mlir/Dialect/Tensor/IR/Tensor.h"
-#include "mlir/Dialect/Math/IR/Math.h"
-#include "mlir/IR/ImplicitLocOpBuilder.h"
+#include "mlir/Dialect/Tosa/IR/TosaOps.h"
 
 using namespace mlir;
 
 namespace {
+// This pattern implements the classic 'BatchNorm Folding' into a 
+// Convolution. We specifically target the TOSA dialect.
+struct FoldTosaBatchNorm : public OpRewritePattern<tosa::MulOp> {
+  using OpRewritePattern<tosa::MulOp>::OpRewritePattern;
 
-struct FoldBatchNormPattern : public RewritePattern {
-  FoldBatchNormPattern(MLIRContext *context)
-      : RewritePattern("test.batch_norm", 1, context) {}
-
-  LogicalResult matchAndRewrite(Operation *op,
+  LogicalResult matchAndRewrite(tosa::MulOp mulOp, 
                                 PatternRewriter &rewriter) const override {
-    if (op->getNumOperands() != 5) return failure();
-
-    Value bnInput = op->getOperand(0);
-    Operation *convOp = bnInput.getDefiningOp();
-    if (!convOp || convOp->getName().getStringRef() != "linalg.conv_2d_nhwc_fhwc")
-      return failure();
-
-    Location loc = op->getLoc();
     
-    // B. Extraction
-    Value weights = convOp->getOperand(1);
-    Value gamma   = op->getOperand(1);
-    Value beta    = op->getOperand(2);
-    Value mean    = op->getOperand(3);
-    Value var     = op->getOperand(4);
+    // 1. Trace the consumer: We expect Mul -> Add (Scale -> Shift)
+    auto convOp = mulOp.getInput1().getDefiningOp<tosa::Conv2DOp>();
+    if (!convOp) return failure();
 
-    auto weightType = weights.getType().cast<RankedTensorType>();
-    auto paramType  = gamma.getType().cast<RankedTensorType>();
-    auto outType    = bnInput.getType().cast<RankedTensorType>();
-    auto elementType = paramType.getElementType();
+    // Check if the Mul result is consumed by an Add
+    if (!mulOp.getResult().hasOneUse()) return failure();
+    auto addOp = llvm::dyn_cast<tosa::AddOp>(*mulOp.getResult().getUsers().begin());
+    if (!addOp) return failure();
 
-    // CRITICAL FIX: Tell the rewriter to start inserting code BEFORE the Convolution.
-    // This ensures the new weights exist before the Conv tries to use them.
+    // 2. Extract weights and constants
+    auto weightConst = convOp.getWeight().getDefiningOp<tosa::ConstOp>();
+    auto biasConst = convOp.getBias().getDefiningOp<tosa::ConstOp>();
+    auto scaleConst = mulOp.getInput2().getDefiningOp<tosa::ConstOp>();
+    auto shiftConst = addOp.getInput2().getDefiningOp<tosa::ConstOp>();
+
+    if (!weightConst || !biasConst || !scaleConst || !shiftConst) return failure();
+
+    auto weightAttr = weightConst.getValue().cast<DenseElementsAttr>();
+    auto scaleAttr = scaleConst.getValue().cast<DenseElementsAttr>();
+    auto biasAttr = biasConst.getValue().cast<DenseElementsAttr>();
+    auto shiftAttr = shiftConst.getValue().cast<DenseElementsAttr>();
+
+    // 3. Mathematical Folding logic
+    SmallVector<float> newWeights;
+    auto wValues = weightAttr.getValues<float>();
+    auto sValues = scaleAttr.getValues<float>();
+    
+    // Conv weight layout: [OutChan, K, K, InChan]
+    int elementsPerChannel = weightAttr.getNumElements() / sValues.size();
+    for (int oc = 0; oc < sValues.size(); ++oc) {
+      float scale = sValues[oc];
+      for (int i = 0; i < elementsPerChannel; ++i) {
+        newWeights.push_back(wValues[oc * elementsPerChannel + i] * scale);
+      }
+    }
+
+    SmallVector<float> newBias;
+    auto bValues = biasAttr.getValues<float>();
+    auto shValues = shiftAttr.getValues<float>();
+    for (int i = 0; i < bValues.size(); ++i) {
+      newBias.push_back((bValues[i] * sValues[i]) + shValues[i]);
+    }
+
+    // 4. In-place IR Update
     rewriter.setInsertionPoint(convOp);
-
-    // 1. Calculate Multiplier
-    Value eps = rewriter.create<arith::ConstantOp>(loc, rewriter.getFloatAttr(elementType, 1e-5));
-    Value empty1D = rewriter.create<tensor::EmptyOp>(loc, paramType.getShape(), elementType);
-    auto map1D = rewriter.getMultiDimIdentityMap(1);
-
-    auto multOp = rewriter.create<linalg::GenericOp>(
-        loc, paramType, ValueRange{var, gamma}, empty1D,
-        SmallVector<AffineMap>{map1D, map1D, map1D},
-        SmallVector<utils::IteratorType>{utils::IteratorType::parallel},
-        [&](OpBuilder &b, Location l, ValueRange args) {
-          Value a = b.create<arith::AddFOp>(l, args[0], eps);
-          Value s = b.create<math::SqrtOp>(l, a);
-          Value m = b.create<arith::DivFOp>(l, args[1], s);
-          b.create<linalg::YieldOp>(l, m);
-        });
-    Value factor = multOp.getResult(0);
-
-    // 2. Calculate New Bias
-    auto biasOp = rewriter.create<linalg::GenericOp>(
-        loc, paramType, ValueRange{beta, factor, mean}, empty1D,
-        SmallVector<AffineMap>{map1D, map1D, map1D, map1D},
-        SmallVector<utils::IteratorType>{utils::IteratorType::parallel},
-        [&](OpBuilder &b, Location l, ValueRange args) {
-          Value prod = b.create<arith::MulFOp>(l, args[1], args[2]);
-          Value res  = b.create<arith::SubFOp>(l, args[0], prod);
-          b.create<linalg::YieldOp>(l, res);
-        });
-    Value newBias = biasOp.getResult(0);
-
-    // 3. Fold Weights
-    auto map4D = rewriter.getMultiDimIdentityMap(4);
-    auto mapBroadcast = AffineMap::get(4, 0, {rewriter.getAffineDimExpr(0)}, rewriter.getContext());
-    Value empty4D = rewriter.create<tensor::EmptyOp>(loc, weightType.getShape(), elementType);
+    auto newWAttr = DenseElementsAttr::get(weightAttr.getType(), llvm::ArrayRef<float>(newWeights));
+    auto newBAttr = DenseElementsAttr::get(biasAttr.getType(), llvm::ArrayRef<float>(newBias));
     
-    auto weightFoldOp = rewriter.create<linalg::GenericOp>(
-        loc, weightType, ValueRange{weights, factor}, empty4D,
-        SmallVector<AffineMap>{map4D, mapBroadcast, map4D},
-        SmallVector<utils::IteratorType>(4, utils::IteratorType::parallel),
-        [&](OpBuilder &b, Location l, ValueRange args) {
-          Value res = b.create<arith::MulFOp>(l, args[0], args[1]);
-          b.create<linalg::YieldOp>(l, res);
-        });
+    auto newWConst = rewriter.create<tosa::ConstOp>(weightConst.getLoc(), weightAttr.getType(), newWAttr);
+    auto newBConst = rewriter.create<tosa::ConstOp>(biasConst.getLoc(), biasAttr.getType(), newBAttr);
 
-    // 4. Update the Convolution Weights In-Place
     rewriter.modifyOpInPlace(convOp, [&]() {
-      convOp->setOperand(1, weightFoldOp.getResult(0));
+      convOp.setOperand(1, newWConst);
+      convOp.setOperand(2, newBConst);
     });
 
-    // 5. Apply Bias AFTER Conv
-    // Move the "pen" to just after the Convolution so we can add the bias to its result.
-    rewriter.setInsertionPointAfter(convOp);
-
-    auto mapData = rewriter.getMultiDimIdentityMap(4);
-    auto mapBias = AffineMap::get(4, 0, {rewriter.getAffineDimExpr(3)}, rewriter.getContext());
-    Value emptyOut = rewriter.create<tensor::EmptyOp>(loc, outType.getShape(), elementType);
-
-    auto finalAddOp = rewriter.create<linalg::GenericOp>(
-        loc, outType, ValueRange{convOp->getResult(0), newBias}, emptyOut,
-        SmallVector<AffineMap>{mapData, mapBias, mapData},
-        SmallVector<utils::IteratorType>(4, utils::IteratorType::parallel),
-        [&](OpBuilder &b, Location l, ValueRange args) {
-          Value res = b.create<arith::AddFOp>(l, args[0], args[1]);
-          b.create<linalg::YieldOp>(l, res);
-        });
-
-    // D. Final Replace
-    rewriter.replaceOp(op, finalAddOp->getResults());
+    rewriter.replaceOp(addOp, convOp.getResult());
     return success();
   }
 };
 
-struct FoldBatchNormPass 
-    : public PassWrapper<FoldBatchNormPass, OperationPass<ModuleOp>> {
-  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(FoldBatchNormPass)
+struct TosaFoldBatchNormPass : 
+    public PassWrapper<TosaFoldBatchNormPass, OperationPass<ModuleOp>> {
+  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(TosaFoldBatchNormPass)
+  
   void runOnOperation() override {
-    MLIRContext *context = &getContext();
-    RewritePatternSet patterns(context);
-    patterns.add<FoldBatchNormPattern>(context);
+    MLIRContext *ctx = &getContext();
+    RewritePatternSet patterns(ctx);
+    patterns.add<FoldTosaBatchNorm>(ctx);
     if (failed(applyPatternsAndFoldGreedily(getOperation(), std::move(patterns))))
       signalPassFailure();
   }
+  
   llvm::StringRef getArgument() const final { return "fold-batchnorm"; }
 };
-
 } // namespace
 
 namespace mlir {
 void registerFoldBatchNormPass() {
     registerPass([]() -> std::unique_ptr<Pass> {
-        return std::make_unique<FoldBatchNormPass>();
+        return std::make_unique<TosaFoldBatchNormPass>();
     });
 }
 }

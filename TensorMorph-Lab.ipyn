@@ -4,7 +4,7 @@
     "metadata": {
         "colab": {
             "provenance": [],
-            "authorship_tag": "ABX9TyN7CKPJ/S64o9pBGhH+X4Tu"
+            "authorship_tag": "ABX9TyOZoPuDemVMPgsM2U3ZKCGf"
         },
         "kernelspec": {
             "name": "python3",
@@ -19,7 +19,8 @@
             "cell_type": "code",
             "execution_count": null,
             "metadata": {
-                "id": "REqmtqFLs-WA"
+                "id": "REqmtqFLs-WA",
+                "cellView": "form"
             },
             "outputs": [],
             "source": [
@@ -89,48 +90,128 @@
                 "    print(f\"Directory not found: {DRIVE_FOLDER}\")"
             ],
             "metadata": {
-                "id": "qlK73wr7tOrV"
+                "id": "qlK73wr7tOrV",
+                "cellView": "form",
+                "colab": {
+                    "base_uri": "https://localhost:8080/"
+                },
+                "executionInfo": {
+                    "status": "ok",
+                    "timestamp": 1766532978591,
+                    "user_tz": 480,
+                    "elapsed": 30130,
+                    "user": {
+                        "displayName": "Stefan Lafon",
+                        "userId": "17149650627927548318"
+                    }
+                },
+                "outputId": "3e93f0b8-cf71-4de4-dc77-67b93abecd35"
             },
-            "execution_count": null,
-            "outputs": []
+            "execution_count": 62,
+            "outputs": [
+                {
+                    "output_type": "stream",
+                    "name": "stdout",
+                    "text": [
+                        "/content\n",
+                        "Syncing files from Drive...\n",
+                        "-- The C compiler identification is Clang 18.1.8\n",
+                        "-- The CXX compiler identification is Clang 18.1.8\n",
+                        "-- Detecting C compiler ABI info\n",
+                        "-- Detecting C compiler ABI info - done\n",
+                        "-- Check for working C compiler: /usr/bin/clang-18 - skipped\n",
+                        "-- Detecting C compile features\n",
+                        "-- Detecting C compile features - done\n",
+                        "-- Detecting CXX compiler ABI info\n",
+                        "-- Detecting CXX compiler ABI info - done\n",
+                        "-- Check for working CXX compiler: /usr/bin/clang++-18 - skipped\n",
+                        "-- Detecting CXX compile features\n",
+                        "-- Detecting CXX compile features - done\n",
+                        "-- Performing Test HAVE_FFI_CALL\n",
+                        "-- Performing Test HAVE_FFI_CALL - Success\n",
+                        "-- Found FFI: /usr/lib/x86_64-linux-gnu/libffi.so\n",
+                        "-- Could NOT find LibEdit (missing: LibEdit_INCLUDE_DIRS LibEdit_LIBRARIES) \n",
+                        "-- Performing Test Terminfo_LINKABLE\n",
+                        "-- Performing Test Terminfo_LINKABLE - Success\n",
+                        "-- Found Terminfo: /usr/lib/x86_64-linux-gnu/libtinfo.so\n",
+                        "-- Found ZLIB: /usr/lib/x86_64-linux-gnu/libz.so (found version \"1.2.11\")\n",
+                        "-- Found zstd: /usr/lib/x86_64-linux-gnu/libzstd.so\n",
+                        "-- Found LibXml2: /usr/lib/x86_64-linux-gnu/libxml2.so (found version \"2.9.13\")\n",
+                        "-- Found CURL: /usr/lib/x86_64-linux-gnu/libcurl.so (found version \"7.81.0\")\n",
+                        "-- Could NOT find LibEdit (missing: LibEdit_INCLUDE_DIRS LibEdit_LIBRARIES) \n",
+                        "-- Configuring done (1.9s)\n",
+                        "-- Generating done (0.0s)\n",
+                        "-- Build files have been written to: /content/tensormorph_local/build\n",
+                        "[4/4] Linking CXX executable tools/tensormorph-opt\u001b[K\n",
+                        "\n",
+                        "--- Build Successful ---\n",
+                        "Ubuntu LLVM version 18.1.8\n",
+                        "  Optimized build.\n"
+                    ]
+                }
+            ]
         },
         {
             "cell_type": "code",
             "source": [
                 "# @title 3. Test MLIR\n",
                 "%%writefile /content/tensormorph_local/test.mlir\n",
-                "// This IR uses the TOSA dialect, allowing it to be both a real-world\n",
-                "// representation and a valid input for our high-speed Colab prototyping.\n",
                 "module {\n",
                 "  func.func @main(\n",
-                "    %input: tensor<1x224x224x3xf32>,\n",
-                "    %weights: tensor<64x3x3x3xf32>,\n",
-                "    %bias: tensor<64xf32>\n",
-                "  ) -> tensor<1x224x224x64xf32> {\n",
+                "    %input: tensor<1x4x4x1xf32>,\n",
+                "    %weights: tensor<1x1x1x1xf32>,\n",
+                "    %bias_ignored: tensor<1xf32>\n",
+                "  ) -> tensor<1x4x4x1xf32> {\n",
                 "\n",
-                "    // 1. TOSA Convolution Op\n",
-                "    // TOSA requires specific attributes like padding and stride to be\n",
-                "    // explicitly defined as arrays.\n",
-                "    %0 = \"tosa.conv2d\"(%input, %weights, %bias) {\n",
+                "    // Initial Bias for Conv is 2.0\n",
+                "    %c_bias = \"tosa.const\"() {value = dense<2.0> : tensor<1xf32>} : () -> tensor<1xf32>\n",
+                "\n",
+                "    // Shift/BatchNorm factor is 1.5\n",
+                "    %shift = \"tosa.const\"() {value = dense<1.5> : tensor<1xf32>} : () -> tensor<1xf32>\n",
+                "\n",
+                "    // 1. TOSA Convolution\n",
+                "    // All shapes are now synchronized to 1x1x1x1 to ensure type legalization passes.\n",
+                "    %0 = \"tosa.conv2d\"(%input, %weights, %c_bias) {\n",
                 "      dilation = array<i64: 1, 1>,\n",
                 "      pad = array<i64: 0, 0, 0, 0>,\n",
                 "      stride = array<i64: 1, 1>\n",
-                "    } : (tensor<1x224x224x3xf32>, tensor<64x3x3x3xf32>, tensor<64xf32>) -> tensor<1x224x224x64xf32>\n",
+                "    } : (tensor<1x4x4x1xf32>, tensor<1x1x1x1xf32>, tensor<1xf32>) -> tensor<1x4x4x1xf32>\n",
                 "\n",
-                "    // 2. TOSA Add Op\n",
-                "    // This represents the final 'shift' part of the BatchNorm\n",
-                "    // that we intend to fuse into the preceding convolution.\n",
-                "    %result = \"tosa.add\"(%0, %bias) : (tensor<1x224x224x64xf32>, tensor<64xf32>) -> tensor<1x224x224x64xf32>\n",
+                "    // 2. TOSA Add (The fusion target)\n",
+                "    %result = \"tosa.add\"(%0, %shift) : (tensor<1x4x4x1xf32>, tensor<1xf32>) -> tensor<1x4x4x1xf32>\n",
                 "\n",
-                "    return %result : tensor<1x224x224x64xf32>\n",
+                "    return %result : tensor<1x4x4x1xf32>\n",
                 "  }\n",
                 "}"
             ],
             "metadata": {
-                "id": "JIRbH7HKSHEz"
+                "id": "JIRbH7HKSHEz",
+                "cellView": "form",
+                "colab": {
+                    "base_uri": "https://localhost:8080/"
+                },
+                "executionInfo": {
+                    "status": "ok",
+                    "timestamp": 1766532991330,
+                    "user_tz": 480,
+                    "elapsed": 21,
+                    "user": {
+                        "displayName": "Stefan Lafon",
+                        "userId": "17149650627927548318"
+                    }
+                },
+                "outputId": "b8cc528d-bed8-4682-9b98-9d716f68a2a4"
             },
-            "execution_count": null,
-            "outputs": []
+            "execution_count": 63,
+            "outputs": [
+                {
+                    "output_type": "stream",
+                    "name": "stdout",
+                    "text": [
+                        "Writing /content/tensormorph_local/test.mlir\n"
+                    ]
+                }
+            ]
         },
         {
             "cell_type": "code",
@@ -142,10 +223,42 @@
                 "    /content/tensormorph_local/test.mlir"
             ],
             "metadata": {
-                "id": "TVD4Y9TzSVVg"
+                "id": "TVD4Y9TzSVVg",
+                "cellView": "form",
+                "colab": {
+                    "base_uri": "https://localhost:8080/"
+                },
+                "executionInfo": {
+                    "status": "ok",
+                    "timestamp": 1766532992708,
+                    "user_tz": 480,
+                    "elapsed": 108,
+                    "user": {
+                        "displayName": "Stefan Lafon",
+                        "userId": "17149650627927548318"
+                    }
+                },
+                "outputId": "d7a28c65-aee8-4ceb-a471-fad9b6a39c11"
             },
-            "execution_count": null,
-            "outputs": []
+            "execution_count": 64,
+            "outputs": [
+                {
+                    "output_type": "stream",
+                    "name": "stdout",
+                    "text": [
+                        "module {\n",
+                        "  func.func @main(%arg0: tensor<1x4x4x1xf32>, %arg1: tensor<1x1x1x1xf32>, %arg2: tensor<1xf32>) -> tensor<1x4x4x1xf32> {\n",
+                        "    %0 = \"tosa.const\"() <{value = dense<2.000000e+00> : tensor<1xf32>}> : () -> tensor<1xf32>\n",
+                        "    %1 = \"tosa.const\"() <{value = dense<1.500000e+00> : tensor<1xf32>}> : () -> tensor<1xf32>\n",
+                        "    %2 = tosa.conv2d %arg0, %arg1, %0 {dilation = array<i64: 1, 1>, pad = array<i64: 0, 0, 0, 0>, stride = array<i64: 1, 1>} : (tensor<1x4x4x1xf32>, tensor<1x1x1x1xf32>, tensor<1xf32>) -> tensor<1x4x4x1xf32>\n",
+                        "    %3 = tosa.add %2, %1 : (tensor<1x4x4x1xf32>, tensor<1xf32>) -> tensor<1x4x4x1xf32>\n",
+                        "    return %3 : tensor<1x4x4x1xf32>\n",
+                        "  }\n",
+                        "}\n",
+                        "\n"
+                    ]
+                }
+            ]
         },
         {
             "cell_type": "code",
@@ -156,14 +269,15 @@
                 "INPUT_MLIR=$1\n",
                 "OUTPUT_LLVM=$2\n",
                 "\n",
-                "# Direct Lowering Pipeline\n",
-                "# This avoids the complex tensor-to-memref casting issues by focusing\n",
-                "# on direct dialect-to-dialect conversion.\n",
+                "# Structured Pass Pipeline\n",
+                "# We nest function-level passes inside the func.func() wrapper\n",
+                "# to allow the PassManager to schedule TOSA lowering correctly.\n",
                 "/usr/lib/llvm-18/bin/mlir-opt $INPUT_MLIR \\\\\n",
                 "    --allow-unregistered-dialect \\\\\n",
                 "    --pass-pipeline=\"builtin.module( \\\\\n",
                 "        func.func(tosa-to-linalg-named, tosa-to-linalg), \\\\\n",
-                "        one-shot-bufferize{allow-unknown-ops}, \\\\\n",
+                "        one-shot-bufferize{allow-unknown-ops function-boundary-type-conversion=identity-layout-map}, \\\\\n",
+                "        reconcile-unrealized-casts, \\\\\n",
                 "        func.func(convert-linalg-to-loops, convert-scf-to-cf), \\\\\n",
                 "        expand-strided-metadata, \\\\\n",
                 "        lower-affine, \\\\\n",
@@ -177,37 +291,64 @@
                 "''')\n",
                 "\n",
                 "!chmod +x /content/tensormorph_local/lower.sh\n",
-                "print(\"Lowering utility script updated.\")"
+                "print(\"Lowering utility script updated with explicit pass nesting.\")"
             ],
             "metadata": {
-                "id": "eZkQ9BTNKA-0"
+                "id": "eZkQ9BTNKA-0",
+                "colab": {
+                    "base_uri": "https://localhost:8080/"
+                },
+                "executionInfo": {
+                    "status": "ok",
+                    "timestamp": 1766532996522,
+                    "user_tz": 480,
+                    "elapsed": 102,
+                    "user": {
+                        "displayName": "Stefan Lafon",
+                        "userId": "17149650627927548318"
+                    }
+                },
+                "outputId": "ca8e017b-8201-498e-af08-abc5b17d4b74"
             },
-            "execution_count": null,
-            "outputs": []
+            "execution_count": 65,
+            "outputs": [
+                {
+                    "output_type": "stream",
+                    "name": "stdout",
+                    "text": [
+                        "Lowering utility script updated with explicit pass nesting.\n"
+                    ]
+                }
+            ]
         },
         {
             "cell_type": "code",
             "source": [
-                "# @title 6. Generate execution wrapper\n",
+                "# @title 6. Generate Execution Wrapper\n",
                 "with open(\"/content/tensormorph_local/benchmark_wrapper.mlir\", \"w\") as f:\n",
                 "    f.write('''\n",
                 "module {\n",
-                "  // We use the 'memref' version of the call signature to satisfy the runner\n",
-                "  func.func private @main(memref<1x224x224x3xf32>, memref<64x3x3x3xf32>, memref<64xf32>) -> memref<1x224x224x64xf32>\n",
+                "  // Global definitions for our input data\n",
+                "  memref.global \"private\" constant @input_data : memref<1x4x4x1xf32> = dense<1.0>\n",
+                "  memref.global \"private\" constant @weight_data : memref<1x1x1x1xf32> = dense<0.5>\n",
+                "  memref.global \"private\" constant @bias_data : memref<1xf32> = dense<0.0>\n",
+                "\n",
+                "  // Updated signature to use memrefs directly\n",
+                "  func.func private @main(memref<1x4x4x1xf32>, memref<1x1x1x1xf32>, memref<1xf32>) -> memref<1x4x4x1xf32>\n",
                 "\n",
                 "  func.func @benchmark_entry() {\n",
-                "    %in = memref.alloc() : memref<1x224x224x3xf32>\n",
-                "    %w  = memref.alloc() : memref<64x3x3x3xf32>\n",
-                "    %b  = memref.alloc() : memref<64xf32>\n",
+                "    %in = memref.get_global @input_data : memref<1x4x4x1xf32>\n",
+                "    %w  = memref.get_global @weight_data : memref<1x1x1x1xf32>\n",
+                "    %b  = memref.get_global @bias_data : memref<1xf32>\n",
                 "\n",
-                "    // Call the original main function (Lowering handles the tensor->memref mapping)\n",
-                "    %res = func.call @main(%in, %w, %b) : (memref<1x224x224x3xf32>, memref<64x3x3x3xf32>, memref<64xf32>) -> memref<1x224x224x64xf32>\n",
+                "    // Call @main using the pre-allocated memory\n",
+                "    %res = func.call @main(%in, %w, %b) : (memref<1x4x4x1xf32>, memref<1x1x1x1xf32>, memref<1xf32>) -> memref<1x4x4x1xf32>\n",
                 "\n",
                 "    return\n",
                 "  }\n",
                 "}\n",
                 "''')\n",
-                "print(\"Benchmark wrapper regenerated with direct memory allocation.\")"
+                "print(\"Benchmark wrapper updated to use stable Memref Globals.\")"
             ],
             "metadata": {
                 "id": "5YpbvkGQKDQq"
