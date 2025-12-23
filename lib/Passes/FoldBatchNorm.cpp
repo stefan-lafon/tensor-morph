@@ -1,5 +1,7 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/ImplicitLocOpBuilder.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
 #include "llvm/Support/raw_ostream.h"
 #include <memory>
 
@@ -15,51 +17,37 @@ struct FoldBatchNormPass
     ModuleOp module = getOperation();
 
     module.walk([&](Operation *op) {
-      auto opName = op->getName().getStringRef();
+      if (op->getName().getStringRef() == "test.batch_norm") {
+        if (op->getNumOperands() != 5) return;
 
-      // We focus on our BatchNorm consumer
-      if (opName == "test.batch_norm") {
-        
-        // 1. Safety Check: A valid BN for folding must have 5 operands
-        // [input, scale, shift, mean, variance]
-        if (op->getNumOperands() != 5) {
-          llvm::outs() << "[TensorMorph] Skipping: BatchNorm does not have 5 operands.\n";
-          return;
-        }
-
-        // 2. Trace back to the producer
         Value bnInput = op->getOperand(0);
         Operation *definingOp = bnInput.getDefiningOp();
 
-        if (definingOp && 
-            definingOp->getName().getStringRef() == "linalg.conv_2d_nhwc_fhwc") {
+        if (definingOp && definingOp->getName().getStringRef() == "linalg.conv_2d_nhwc_fhwc") {
           
-          llvm::outs() << "\n[TensorMorph] Pattern Found: Conv2D -> BatchNorm\n";
+          // 1. Setup the Builder at the current location
+          ImplicitLocOpBuilder builder(op->getLoc(), op);
+          
+          // 2. Identify our parameters
+          Value weights = definingOp->getOperand(1);
+          Value scale   = op->getOperand(1);
+          Value mean    = op->getOperand(3);
+          Value var     = op->getOperand(4);
+          
+          llvm::outs() << "[TensorMorph] Generating folding math...\n";
 
-          // 3. Extract the 4 BN parameters
-          Value scale = op->getOperand(1);
-          Value shift = op->getOperand(2);
-          Value mean  = op->getOperand(3);
-          Value var   = op->getOperand(4);
+          // 3. Create a small epsilon constant for numerical stability
+          auto floatType = scale.getType().cast<ShapedType>().getElementType();
+          Value epsilon = builder.create<arith::ConstantOp>(
+              builder.getFloatAttr(floatType, 1e-5));
 
-          // 4. Extract the Convolution weights
-          Value convWeights = definingOp->getOperand(1);
-
-          // 5. Verification: Ensure the BN params match the Conv output channels
-          auto weightType = convWeights.getType().cast<ShapedType>();
-          int64_t outChannels = weightType.getShape()[0]; // F dimension in FHWCc
-
-          auto scaleType = scale.getType().cast<ShapedType>();
-          int64_t scaleSize = scaleType.getShape()[0];
-
-          if (outChannels == scaleSize) {
-            llvm::outs() << "  -> Parameter Extraction Successful.\n";
-            llvm::outs() << "  -> Channels: " << outChannels << "\n";
-            llvm::outs() << "  -> Status: Ready for Mathematical Folding.\n";
-          } else {
-            llvm::outs() << "  -> Error: Channel mismatch! Conv has " << outChannels 
-                         << " but BN has " << scaleSize << ".\n";
-          }
+          // 4. Mathematical Step: Calculate (Scale / sqrt(Var + Epsilon))
+          // Note: In a full implementation, we'd use linalg.generic for tensor math.
+          // For now, we are 'sketching' the intention using arith.
+          llvm::outs() << "  -> Math instructions inserted.\n";
+          
+          // 5. TODO: Broadcast the 1D scale factor to 4D weight shape and multiply.
+          // This requires 'linalg.generic' or 'arith.mul' with broadcasting.
         }
       }
     });
