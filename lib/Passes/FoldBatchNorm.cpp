@@ -1,4 +1,3 @@
-// @title FoldBatchNorm.cpp
 #include "mlir/Pass/Pass.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
@@ -7,71 +6,88 @@
 using namespace mlir;
 
 namespace {
-// This pattern implements the classic 'BatchNorm Folding' into a 
-// Convolution. We specifically target the TOSA dialect.
-struct FoldTosaBatchNorm : public OpRewritePattern<tosa::MulOp> {
-  using OpRewritePattern<tosa::MulOp>::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(tosa::MulOp mulOp, 
+struct IterativeFoldBatchNorm : public OpRewritePattern<tosa::Conv2DOp> {
+  using OpRewritePattern<tosa::Conv2DOp>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(tosa::Conv2DOp convOp, 
                                 PatternRewriter &rewriter) const override {
     
-    // 1. Trace the consumer: We expect Mul -> Add (Scale -> Shift)
-    auto convOp = mulOp.getInput1().getDefiningOp<tosa::Conv2DOp>();
-    if (!convOp) return failure();
-
-    // Check if the Mul result is consumed by an Add
-    if (!mulOp.getResult().hasOneUse()) return failure();
-    auto addOp = llvm::dyn_cast<tosa::AddOp>(*mulOp.getResult().getUsers().begin());
-    if (!addOp) return failure();
-
-    // 2. Extract weights and constants
+    // 1. We MUST have constant weights AND a constant bias to fold these adjustments.
     auto weightConst = convOp.getWeight().getDefiningOp<tosa::ConstOp>();
     auto biasConst = convOp.getBias().getDefiningOp<tosa::ConstOp>();
-    auto scaleConst = mulOp.getInput2().getDefiningOp<tosa::ConstOp>();
-    auto shiftConst = addOp.getInput2().getDefiningOp<tosa::ConstOp>();
-
-    if (!weightConst || !biasConst || !scaleConst || !shiftConst) return failure();
+    
+    if (!weightConst || !biasConst) return failure();
 
     auto weightAttr = weightConst.getValue().cast<DenseElementsAttr>();
-    auto scaleAttr = scaleConst.getValue().cast<DenseElementsAttr>();
     auto biasAttr = biasConst.getValue().cast<DenseElementsAttr>();
-    auto shiftAttr = shiftConst.getValue().cast<DenseElementsAttr>();
 
-    // 3. Mathematical Folding logic
-    SmallVector<float> newWeights;
-    auto wValues = weightAttr.getValues<float>();
-    auto sValues = scaleAttr.getValues<float>();
+    // Copy original values into mutable buffers
+    SmallVector<float> currentWeights(weightAttr.getValues<float>());
+    SmallVector<float> currentBias(biasAttr.getValues<float>());
     
-    // Conv weight layout: [OutChan, K, K, InChan]
-    int elementsPerChannel = weightAttr.getNumElements() / sValues.size();
-    for (int oc = 0; oc < sValues.size(); ++oc) {
-      float scale = sValues[oc];
-      for (int i = 0; i < elementsPerChannel; ++i) {
-        newWeights.push_back(wValues[oc * elementsPerChannel + i] * scale);
+    int numOutChannels = biasAttr.getNumElements();
+    int weightsPerChannel = currentWeights.size() / numOutChannels;
+
+    Operation *lastOp = convOp;
+    bool changed = false;
+
+    // 2. Greedy Forward Walk: Look at the users of the current result
+    while (lastOp->getResult(0).hasOneUse()) {
+      Operation *nextOp = *lastOp->getResult(0).getUsers().begin();
+
+      // Handle Scaling (Mul)
+      if (auto mulOp = llvm::dyn_cast<tosa::MulOp>(nextOp)) {
+        auto scaleConst = mulOp.getInput2().getDefiningOp<tosa::ConstOp>();
+        if (!scaleConst) break;
+        
+        auto sValues = scaleConst.getValue().cast<DenseElementsAttr>().getValues<float>();
+        
+        for (int oc = 0; oc < numOutChannels; ++oc) {
+          float s = sValues[oc];
+          currentBias[oc] *= s;
+          for (int i = 0; i < weightsPerChannel; ++i) {
+            currentWeights[oc * weightsPerChannel + i] *= s;
+          }
+        }
+        lastOp = nextOp;
+        changed = true;
+      } 
+      // Handle Shifting (Add)
+      else if (auto addOp = llvm::dyn_cast<tosa::AddOp>(nextOp)) {
+        auto shiftConst = addOp.getInput2().getDefiningOp<tosa::ConstOp>();
+        if (!shiftConst) break;
+
+        auto shValues = shiftConst.getValue().cast<DenseElementsAttr>().getValues<float>();
+
+        for (int oc = 0; oc < numOutChannels; ++oc) {
+          currentBias[oc] += shValues[oc];
+        }
+        lastOp = nextOp;
+        changed = true;
+      } 
+      else {
+        break; 
       }
     }
 
-    SmallVector<float> newBias;
-    auto bValues = biasAttr.getValues<float>();
-    auto shValues = shiftAttr.getValues<float>();
-    for (int i = 0; i < bValues.size(); ++i) {
-      newBias.push_back((bValues[i] * sValues[i]) + shValues[i]);
-    }
+    if (!changed) return failure();
 
-    // 4. In-place IR Update
-    rewriter.setInsertionPoint(convOp);
-    auto newWAttr = DenseElementsAttr::get(weightAttr.getType(), llvm::ArrayRef<float>(newWeights));
-    auto newBAttr = DenseElementsAttr::get(biasAttr.getType(), llvm::ArrayRef<float>(newBias));
+    // 3. Update the IR
+    auto newWAttr = DenseElementsAttr::get(weightAttr.getType(), llvm::ArrayRef<float>(currentWeights));
+    auto newBAttr = DenseElementsAttr::get(biasAttr.getType(), llvm::ArrayRef<float>(currentBias));
     
-    auto newWConst = rewriter.create<tosa::ConstOp>(weightConst.getLoc(), weightAttr.getType(), newWAttr);
-    auto newBConst = rewriter.create<tosa::ConstOp>(biasConst.getLoc(), biasAttr.getType(), newBAttr);
+    auto newWConst = rewriter.create<tosa::ConstOp>(convOp.getLoc(), weightAttr.getType(), newWAttr);
+    auto newBConst = rewriter.create<tosa::ConstOp>(convOp.getLoc(), biasAttr.getType(), newBAttr);
 
     rewriter.modifyOpInPlace(convOp, [&]() {
       convOp.setOperand(1, newWConst);
       convOp.setOperand(2, newBConst);
     });
 
-    rewriter.replaceOp(addOp, convOp.getResult());
+    // Replace the end of the chain with the output of the newly adjusted Conv
+    rewriter.replaceOp(lastOp, convOp.getResult());
+    
     return success();
   }
 };
@@ -83,13 +99,14 @@ struct TosaFoldBatchNormPass :
   void runOnOperation() override {
     MLIRContext *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    patterns.add<FoldTosaBatchNorm>(ctx);
+    patterns.add<IterativeFoldBatchNorm>(ctx);
     if (failed(applyPatternsAndFoldGreedily(getOperation(), std::move(patterns))))
       signalPassFailure();
   }
   
   llvm::StringRef getArgument() const final { return "fold-batchnorm"; }
 };
+
 } // namespace
 
 namespace mlir {
