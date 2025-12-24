@@ -4,7 +4,7 @@
     "metadata": {
         "colab": {
             "provenance": [],
-            "authorship_tag": "ABX9TyPyGVrP6Ba9HXvaV/snmkHb"
+            "authorship_tag": "ABX9TyPqwCHlv6cbsCJ3TQm6g1hM"
         },
         "kernelspec": {
             "name": "python3",
@@ -99,39 +99,41 @@
         {
             "cell_type": "code",
             "source": [
-                "# @title 3. Test MLIR (Large Scale Benchmarking)\n",
+                "# @title 3. Test MLIR (Conv -> Sub -> Mul -> Add)\n",
                 "%%writefile /content/tensormorph_local/test.mlir\n",
                 "module {\n",
-                "  func.func @main(\n",
-                "    %input: tensor<1x224x224x32xf32>\n",
-                "  ) -> tensor<1x224x224x32xf32> {\n",
+                "  func.func @main(%input: tensor<1x4x4x1xf32>) -> tensor<1x4x4x1xf32> {\n",
                 "\n",
-                "    // Larger weights for a real workload\n",
-                "    %c_weights = \"tosa.const\"() {value = dense<0.1> : tensor<32x3x3x32xf32>} : () -> tensor<32x3x3x32xf32>\n",
-                "    %c_bias    = \"tosa.const\"() {value = dense<0.0> : tensor<32xf32>} : () -> tensor<32xf32>\n",
+                "    %c_weights = \"tosa.const\"() {value = dense<0.5> : tensor<1x1x1x1xf32>} : () -> tensor<1x1x1x1xf32>\n",
+                "    %c_bias    = \"tosa.const\"() {value = dense<0.0> : tensor<1xf32>} : () -> tensor<1xf32>\n",
                 "\n",
-                "    %c_shift1  = \"tosa.const\"() {value = dense<1.0> : tensor<32xf32>} : () -> tensor<32xf32>\n",
-                "    %c_scale   = \"tosa.const\"() {value = dense<2.0> : tensor<32xf32>} : () -> tensor<32xf32>\n",
-                "    %c_shift2  = \"tosa.const\"() {value = dense<0.5> : tensor<32xf32>} : () -> tensor<32xf32>\n",
+                "    %c_sub     = \"tosa.const\"() {value = dense<1.0> : tensor<1xf32>} : () -> tensor<1xf32>\n",
+                "    %c_scale   = \"tosa.const\"() {value = dense<2.0> : tensor<1xf32>} : () -> tensor<1xf32>\n",
+                "    %c_add     = \"tosa.const\"() {value = dense<0.5> : tensor<1xf32>} : () -> tensor<1xf32>\n",
                 "\n",
-                "    // 1. Conv2D with 3x3 kernel and 32 filters\n",
+                "    // 1. Conv\n",
                 "    %0 = \"tosa.conv2d\"(%input, %c_weights, %c_bias) {\n",
                 "      dilation = array<i64: 1, 1>,\n",
-                "      pad = array<i64: 1, 1, 1, 1>,\n",
+                "      pad = array<i64: 0, 0, 0, 0>,\n",
                 "      stride = array<i64: 1, 1>\n",
-                "    } : (tensor<1x224x224x32xf32>, tensor<32x3x3x32xf32>, tensor<32xf32>) -> tensor<1x224x224x32xf32>\n",
+                "    } : (tensor<1x4x4x1xf32>, tensor<1x1x1x1xf32>, tensor<1xf32>) -> tensor<1x4x4x1xf32>\n",
                 "\n",
-                "    // 2. Chain of adjustments\n",
-                "    %1 = \"tosa.add\"(%0, %c_shift1) : (tensor<1x224x224x32xf32>, tensor<32xf32>) -> tensor<1x224x224x32xf32>\n",
-                "    %2 = \"tosa.mul\"(%1, %c_scale) {shift = 0 : i8} : (tensor<1x224x224x32xf32>, tensor<32xf32>) -> tensor<1x224x224x32xf32>\n",
-                "    %result = \"tosa.add\"(%2, %c_shift2) : (tensor<1x224x224x32xf32>, tensor<32xf32>) -> tensor<1x224x224x32xf32>\n",
+                "    // 2. Subtraction\n",
+                "    %1 = \"tosa.sub\"(%0, %c_sub) : (tensor<1x4x4x1xf32>, tensor<1xf32>) -> tensor<1x4x4x1xf32>\n",
                 "\n",
-                "    return %result : tensor<1x224x224x32xf32>\n",
+                "    // 3. Scale\n",
+                "    %2 = \"tosa.mul\"(%1, %c_scale) {shift = 0 : i8} : (tensor<1x4x4x1xf32>, tensor<1xf32>) -> tensor<1x4x4x1xf32>\n",
+                "\n",
+                "    // 4. Final Add\n",
+                "    %result = \"tosa.add\"(%2, %c_add) : (tensor<1x4x4x1xf32>, tensor<1xf32>) -> tensor<1x4x4x1xf32>\n",
+                "\n",
+                "    return %result : tensor<1x4x4x1xf32>\n",
                 "  }\n",
                 "}"
             ],
             "metadata": {
-                "id": "JIRbH7HKSHEz"
+                "id": "JIRbH7HKSHEz",
+                "cellView": "form"
             },
             "execution_count": null,
             "outputs": []
