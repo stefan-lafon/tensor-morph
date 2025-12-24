@@ -1,54 +1,101 @@
 #!/bin/bash
-# TensorMorph Project Driver (tm-cli)
 
-# Usage: ./tm-cli <command> [args]
+# ==============================================================================
+# TensorMorph Command Line Interface (CLI)
+# ==============================================================================
+# Ingesting means converting high-level models (Keras/TF) into structured 
+# MLIR dialect representations for compiler-level analysis and optimization.
+#
+# This driver manages the transition from high-level Python code to low-level 
+# C++ MLIR passes, ensuring the environment and dialects are correctly aligned.
+# ==============================================================================
 
-COMMAND=$1
-shift 
+# Fail early if any command in the pipeline fails
+set -e
 
-# Determine the absolute path to the directory where this script lives
-# This makes the CLI work anywhere (Colab, Linux, Docker, etc.)
-PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-
-# Define internal paths relative to the project root
+# Project pathing
+PROJECT_ROOT=$(pwd)
 BUILD_DIR="$PROJECT_ROOT/build"
-BINARY="$BUILD_DIR/bin/tensormorph-opt"
-SCRIPTS_DIR="$PROJECT_ROOT/scripts"
+OPT_TOOL="$BUILD_DIR/tools/tensormorph-opt"
 
-case $COMMAND in
-  "build")
+case "$1" in
+  # ----------------------------------------------------------------------------
+  # BUILD: Compiles the C++ MLIR optimizer using LLVM 18
+  # ----------------------------------------------------------------------------
+  build)
     echo "--- Initiating Build in: $BUILD_DIR ---"
-    mkdir -p "$BUILD_DIR"
+    
+    # Standard check for build directory
+    if [ ! -d "$BUILD_DIR" ]; then
+        mkdir -p "$BUILD_DIR"
+    fi
+    
     cd "$BUILD_DIR" || exit
     
-    # We still use the environment's MLIR/LLVM install paths
-    cmake .. -G Ninja \
-        -DMLIR_DIR=/usr/lib/llvm-18/lib/cmake/mlir \
-        -DLLVM_DIR=/usr/lib/llvm-18/lib/cmake/llvm \
-        -DCMAKE_BUILD_TYPE=Release
+    # We use Ninja for speed and explicitly point to the MLIR/LLVM 18 installs
+    # provided by the initialization cell to avoid version conflicts.
+    cmake -G Ninja \
+          -DMLIR_DIR=/usr/lib/llvm-18/lib/cmake/mlir \
+          -DLLVM_DIR=/usr/lib/llvm-18/lib/cmake/llvm \
+          ..
     ninja
     ;;
 
-  "ingest")
-    # Dispatch to shared Python logic using the relative scripts directory
-    python3 "$SCRIPTS_DIR/ingest.py" "$@"
+  # ----------------------------------------------------------------------------
+  # INGEST: Bridges Keras/TF models into the MLIR ecosystem
+  # ----------------------------------------------------------------------------
+  ingest)
+    shift
+    echo "--- Running Model Ingestion ---"
+    # Logic is handled by the Python factory; it captures the graph and 
+    # exports it into the TensorFlow (TF) dialect for the next stage.
+    python3 scripts/ingest.py "$@"
     ;;
 
-  "optimize")
-    if [ ! -f "$BINARY" ]; then
-        echo "Error: Optimizer binary not found at $BINARY. Run './tm-cli build' first."
+  # ----------------------------------------------------------------------------
+  # OPTIMIZE: The heavy-lifting phase (Dialect Bridging + C++ Passes)
+  # ----------------------------------------------------------------------------
+  optimize)
+    INPUT_FILE=$2
+    OUTPUT_FILE="${INPUT_FILE%.mlir}.opt.mlir"
+    
+    # Sanity checks to prevent obscure MLIR errors later
+    if [ ! -f "$INPUT_FILE" ]; then
+        echo "Error: Input file $INPUT_FILE not found."
         exit 1
     fi
-    "$BINARY" "$@"
+
+    if [ ! -f "$OPT_TOOL" ]; then
+        echo "Error: Optimizer binary not found at $OPT_TOOL. Did you run './tm-cli build'?"
+        exit 1
+    fi
+
+    echo "--- Lowering TF Graph to TOSA & Running C++ Optimizer ---"
+    
+    # PIPE EXPLANATION:
+    # 1. tf-mlir-opt: Performs the 'functional' conversion to remove graph islands
+    #    and then lowers the TF ops into the TOSA (Tensor Operator Set Architecture) 
+    #    dialect, which our custom pass is designed to process.
+    # 2. tensormorph-opt: Executes our C++ 'tosa-linear-algebra-folder' pass to 
+    #    optimize mathematical operations and reduce graph complexity.
+    tf-mlir-opt "$INPUT_FILE" \
+        --tf-executor-to-functional-conversion \
+        --tf-to-tosa-pipeline \
+        | "$OPT_TOOL" --tosa-linear-algebra-folder \
+        -o "$OUTPUT_FILE"
+    
+    echo "Optimization complete -> $OUTPUT_FILE"
     ;;
 
-  "benchmark")
-    # Dispatch to shared shell logic using the relative scripts directory
-    bash "$SCRIPTS_DIR/benchmark.sh" "$@"
-    ;;
-
+  # ----------------------------------------------------------------------------
+  # DEFAULT: Help Message
+  # ----------------------------------------------------------------------------
   *)
-    echo "Usage: tm-cli {build|ingest|optimize|benchmark} [options]"
-    exit 1
+    echo "TensorMorph CLI Usage:"
+    echo "  ./tm-cli build                      - Compiles C++ tools"
+    echo "  ./tm-cli ingest --model <name>      - Converts Keras/TF to MLIR"
+    echo "  ./tm-cli optimize <file.mlir>       - Runs the optimization pipeline"
+    echo ""
+    echo "Example: ./tm-cli ingest --model sample_mnist --output test.mlir"
     ;;
 esac
