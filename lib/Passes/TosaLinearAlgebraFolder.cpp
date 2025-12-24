@@ -1,12 +1,13 @@
 /*
  * This file implements a set of greedy optimization patterns for the TOSA dialect.
- * The primary goal here is to identify chains of linear operations (like those 
- * produced by BatchNorm or BiasAdd layers) and "fold" them directly into the 
- * preceding Convolution's weights and bias.
+ * The logic here focuses on reducing graph depth by merging pointwise operations
+ * into preceding convolutions.
+ * * Supported Merges:
+ * - Linear Math Folding: tosa.add, tosa.sub, tosa.mul (folded into weights/bias)
+ * - Activation Fusion: tosa.clamp (fused via "fused_activation" attribute)
  *
- * By doing this at the MLIR level, we reduce the number of operations the 
- * backend has to lower, which simplifies buffer allocation and improves 
- * cache locality.
+ * This reduces the instruction count and allows the backend to generate more 
+ * efficient, single-kernel execution loops.
  */
 
 #include "mlir/Pass/Pass.h"
@@ -19,9 +20,8 @@ using namespace mlir;
 namespace {
 
 /**
- * This pattern anchors on a tosa::Conv2DOp and walks forward through the 
- * instruction stream. It attempts to fuse any subsequent constant-based 
- * Add, Sub, or Mul operations into the convolution's parameters.
+ * Pattern 1: Linear Folding
+ * Anchors on a Conv2D and consumes subsequent Add, Sub, and Mul operations.
  */
 struct FoldLinearMathIntoConv : public OpRewritePattern<tosa::Conv2DOp> {
   using OpRewritePattern<tosa::Conv2DOp>::OpRewritePattern;
@@ -29,7 +29,7 @@ struct FoldLinearMathIntoConv : public OpRewritePattern<tosa::Conv2DOp> {
   LogicalResult matchAndRewrite(tosa::Conv2DOp convOp, 
                                 PatternRewriter &rewriter) const override {
     
-    // We need constant weights and bias to perform the compile-time math
+    // We need defined constants for weights and bias to perform folding.
     auto weightConst = convOp.getWeight().getDefiningOp<tosa::ConstOp>();
     auto biasConst = convOp.getBias().getDefiningOp<tosa::ConstOp>();
     
@@ -38,7 +38,7 @@ struct FoldLinearMathIntoConv : public OpRewritePattern<tosa::Conv2DOp> {
     auto weightAttr = weightConst.getValue().cast<DenseElementsAttr>();
     auto biasAttr = biasConst.getValue().cast<DenseElementsAttr>();
 
-    // Copy original values into local buffers for mutation
+    // Pull values into local vectors so we can mutate them during the walk.
     SmallVector<float> currentWeights(weightAttr.getValues<float>());
     SmallVector<float> currentBias(biasAttr.getValues<float>());
     
@@ -48,7 +48,7 @@ struct FoldLinearMathIntoConv : public OpRewritePattern<tosa::Conv2DOp> {
     Operation *lastOp = convOp;
     bool changed = false;
 
-    // Greedy forward walk through the IR
+    // Greedy forward walk through the IR. We only eat ops that have a single use.
     while (lastOp->getResult(0).hasOneUse()) {
       Operation *nextOp = *lastOp->getResult(0).getUsers().begin();
 
@@ -99,30 +99,61 @@ struct FoldLinearMathIntoConv : public OpRewritePattern<tosa::Conv2DOp> {
 
     if (!changed) return failure();
 
-    // Create the updated attributes and constants
+    // Reify the mutated weights and bias back into the IR.
     auto newWAttr = DenseElementsAttr::get(weightAttr.getType(), llvm::ArrayRef<float>(currentWeights));
     auto newBAttr = DenseElementsAttr::get(biasAttr.getType(), llvm::ArrayRef<float>(currentBias));
     
     auto newWConst = rewriter.create<tosa::ConstOp>(convOp.getLoc(), weightAttr.getType(), newWAttr);
     auto newBConst = rewriter.create<tosa::ConstOp>(convOp.getLoc(), biasAttr.getType(), newBAttr);
 
-    // Update the convolution in place
     rewriter.modifyOpInPlace(convOp, [&]() {
       convOp.setOperand(1, newWConst);
       convOp.setOperand(2, newBConst);
     });
 
-    // Replace the end of the chain with the output of our new Conv
+    // Reroute the final consumer to the updated convolution.
     rewriter.replaceOp(lastOp, convOp.getResult());
+    return success();
+  }
+};
+
+/**
+ * Pattern 2: Clamp/Activation Fusion
+ * Looks for Conv2D ops followed by a Clamp and tags the Conv with metadata.
+ */
+struct FuseClampIntoConv : public OpRewritePattern<tosa::ClampOp> {
+  using OpRewritePattern<tosa::ClampOp>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(tosa::ClampOp clampOp, 
+                                PatternRewriter &rewriter) const override {
+    
+    // Check if the input to this clamp is a Convolution
+    auto convOp = clampOp.getInput().getDefiningOp<tosa::Conv2DOp>();
+    if (!convOp) return failure();
+
+    // Safety: don't fuse if the convolution result is branched to other logic.
+    if (!convOp->getResult(0).hasOneUse()) return failure();
+
+    // Check if we already fused something here.
+    if (convOp->getAttr("fused_activation")) return failure();
+
+    // Attach activation metadata as custom attributes for the backend kernel generator.
+    rewriter.modifyOpInPlace(convOp, [&]() {
+      convOp->setAttr("fused_activation", rewriter.getStringAttr("clamp"));
+      convOp->setAttr("clamp_min", clampOp.getMinIntAttr());
+      rewriter.setInsertionPointAfter(convOp); // Keep IR clean
+      convOp->setAttr("clamp_max", clampOp.getMaxIntAttr());
+    });
+
+    // Bypass the clamp operation.
+    rewriter.replaceOp(clampOp, convOp.getResult());
     
     return success();
   }
 };
 
 /**
- * TosaOptimizationsPass: This pass runs all patterns defined in this file.
- * Currently it focuses on linear algebra folding, but it's built to 
- * accommodate more patterns (like activation fusion) in the future.
+ * Pass Entry Point
  */
 struct TosaOptimizationsPass : 
     public PassWrapper<TosaOptimizationsPass, OperationPass<ModuleOp>> {
@@ -133,6 +164,7 @@ struct TosaOptimizationsPass :
     RewritePatternSet patterns(ctx);
     
     patterns.add<FoldLinearMathIntoConv>(ctx);
+    patterns.add<FuseClampIntoConv>(ctx);
 
     if (failed(applyPatternsAndFoldGreedily(getOperation(), std::move(patterns))))
       signalPassFailure();
