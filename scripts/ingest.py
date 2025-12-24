@@ -1,4 +1,4 @@
-# @title 1. Shared Ingestion Logic (scripts/ingest.py)
+# Shared Ingestion Logic.
 import tensorflow as tf
 import argparse
 import os
