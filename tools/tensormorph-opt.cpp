@@ -14,7 +14,8 @@
 #include "mlir/Dialect/Math/IR/Math.h"
 
 namespace mlir {
-    void registerFoldBatchNormPass();
+    // Forward declaration for the updated optimization pass registration
+    void registerTosaOptimizationsPass();
 }
 
 int main(int argc, char **argv) {
@@ -33,8 +34,8 @@ int main(int argc, char **argv) {
                    mlir::math::MathDialect,
                    mlir::memref::MemRefDialect>();
 
-    // Register our custom TensorMorph logic
-    mlir::registerFoldBatchNormPass();
+    // Register our reorganized TensorMorph logic
+    mlir::registerTosaOptimizationsPass();
 
     return mlir::asMainReturnCode(
         mlir::MlirOptMain(argc, argv, "TensorMorph Compiler\n", registry)

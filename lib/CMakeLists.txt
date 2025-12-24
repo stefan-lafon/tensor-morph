@@ -1,6 +1,6 @@
 # Define the source files
 set(PASS_SOURCES
-  Passes/FoldBatchNorm.cpp
+  Passes/TosaLinearAlgebraFolder.cpp
 )
 
 # Create the shared library
