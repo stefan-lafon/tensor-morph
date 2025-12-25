@@ -11,9 +11,9 @@ namespace tensormorph {
  * @param fuseFanout: If true, allows cloning Conv ops to enable fusion with 
  * multiple downstream users.
  * @param fuseActivations: If true, allows folding Clamp/ReLU into Conv attributes.
+ * @param fuseTranspose: If true, allows folding Transpose into a Conv op.
  */
-void populateTosaStructuralFusionPatterns(RewritePatternSet &patterns, bool fuseFanout, bool fuseActivations);
-
+void populateTosaStructuralFusionPatterns(RewritePatternSet &patterns, bool fuseFanout, bool fuseActivations, bool fuseTranspose);
 /**
  * Registers patterns for general algebraic simplifications.
  */

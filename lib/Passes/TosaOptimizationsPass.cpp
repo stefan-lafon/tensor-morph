@@ -16,6 +16,7 @@ struct TosaOptimizationsPass :
   TosaOptimizationsPass(const TosaOptimizationsPass &other) : PassWrapper(other) {
     this->fuseFanout = other.fuseFanout;
     this->fuseActivations = other.fuseActivations;
+    this->fuseTranspose = other.fuseTranspose;
     this->foldAlgebraic = other.foldAlgebraic;
   }
 
@@ -28,6 +29,10 @@ struct TosaOptimizationsPass :
     llvm::cl::desc("Enable/Disable fusion of Clamp/ReLU into Conv."), 
     llvm::cl::init(true)};
 
+  Option<bool> fuseTranspose{*this, "fuse-transpose", 
+    llvm::cl::desc("Enable/Disable folding of Transpose into Conv weights."), 
+    llvm::cl::init(true)};
+
   Option<bool> foldAlgebraic{*this, "fold-algebraic", 
     llvm::cl::desc("Enable/Disable pure algebraic identities (Add+Add, etc)."), 
     llvm::cl::init(true)};
@@ -36,8 +41,10 @@ struct TosaOptimizationsPass :
     MLIRContext *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     
-    tensormorph::populateTosaStructuralFusionPatterns(patterns, fuseFanout, fuseActivations);
+    // Register structural patterns (Conv fusions, Transpose folding)
+    tensormorph::populateTosaStructuralFusionPatterns(patterns, fuseFanout, fuseActivations, fuseTranspose);
     
+    // Register algebraic patterns (Identities, Chains)
     if (foldAlgebraic) {
       tensormorph::populateTosaAlgebraicFoldingPatterns(patterns);
     }
@@ -46,7 +53,6 @@ struct TosaOptimizationsPass :
       signalPassFailure();
   }
   
-  // Required override when using Options with PassWrapper
   std::unique_ptr<Pass> clonePass() const override {
     return std::make_unique<TosaOptimizationsPass>(*this);
   }

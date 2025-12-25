@@ -4,7 +4,7 @@
     "metadata": {
         "colab": {
             "provenance": [],
-            "authorship_tag": "ABX9TyOiRgO+mhLqvk5qbThh6Mtf"
+            "authorship_tag": "ABX9TyM1LXZsfqPSePYZBwu7cVnW"
         },
         "kernelspec": {
             "name": "python3",
@@ -210,7 +210,8 @@
                 "print(\"Benchmark wrapper updated for 1024x1024 memory-bound stress test.\")"
             ],
             "metadata": {
-                "id": "5YpbvkGQKDQq"
+                "id": "5YpbvkGQKDQq",
+                "cellView": "form"
             },
             "execution_count": null,
             "outputs": []
@@ -338,7 +339,8 @@
                 "\n",
                 "LOCAL_FOLDER = \"/content/tensormorph_local\"\n",
                 "OPT_TOOL = f\"{LOCAL_FOLDER}/build/tensormorph-opt\"\n",
-                "TEST_FILE = f\"{LOCAL_FOLDER}/tests/mega_fusion.mlir\"\n",
+                "# We use the transpose folding test as our verification target\n",
+                "TEST_FILE = f\"{LOCAL_FOLDER}/tests/transpose_fold.mlir\"\n",
                 "\n",
                 "def run_opt(flags):\n",
                 "    cmd = f\"{OPT_TOOL} {flags} {TEST_FILE}\"\n",
@@ -346,20 +348,36 @@
                 "    stdout, stderr = process.communicate()\n",
                 "    return stdout.decode()\n",
                 "\n",
-                "print(\"--- Case 1: Default (All Optimizations ON) ---\")\n",
+                "print(\"--- Case 1: Transpose Folding ON (Default) ---\")\n",
                 "output_on = run_opt(\"--tosa-opt\")\n",
-                "if \"fused_activation = \\\"clamp\\\"\" in output_on:\n",
-                "    print(\"[SUCCESS] Clamp was fused into Conv2D as expected.\")\n",
+                "if \"tosa.transpose\" not in output_on and \"tosa.conv2d\" in output_on:\n",
+                "    print(\"[SUCCESS] Transpose was folded into weights by default.\")\n",
                 "else:\n",
-                "    print(\"[FAILURE] Clamp was NOT fused.\")\n",
+                "    print(\"[FAILURE] Transpose folding failed or operation missing.\")\n",
                 "\n",
-                "print(\"\\n--- Case 2: Disable Activation Fusion (--tosa-opt=\\\"fuse-activations=false\\\") ---\")\n",
-                "# Note: In shell, we escape quotes or use single quotes for pass options\n",
-                "output_off = run_opt('--tosa-opt=\"fuse-activations=false\"')\n",
-                "if \"tosa.clamp\" in output_off and \"fused_activation\" not in output_off:\n",
-                "    print(\"[SUCCESS] Clamp remains a separate operation. Toggle works!\")\n",
+                "print(\"\\n--- Case 2: Transpose Folding OFF (--tosa-opt=\\\"fuse-transpose=false\\\") ---\")\n",
+                "# We use double quotes around the pass options to handle shell escaping\n",
+                "output_off = run_opt('--tosa-opt=\"fuse-transpose=false\"')\n",
+                "if \"tosa.transpose\" in output_off:\n",
+                "    print(\"[SUCCESS] Transpose remains a separate operation. Toggle works!\")\n",
                 "else:\n",
-                "    print(\"[FAILURE] Optimization was still applied despite the flag.\")"
+                "    print(\"[FAILURE] Optimization was still applied despite the false flag.\")\n",
+                "\n",
+                "print(\"\\n--- Case 3: Fan-out Verification (Cloning Check) ---\")\n",
+                "FANOUT_TEST = f\"{LOCAL_FOLDER}/tests/fanout_cloning.mlir\"\n",
+                "def run_fanout(flags):\n",
+                "    cmd = f\"{OPT_TOOL} {flags} {FANOUT_TEST}\"\n",
+                "    process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)\n",
+                "    stdout, stderr = process.communicate()\n",
+                "    return stdout.decode()\n",
+                "\n",
+                "# Check that we have TWO convs when cloning is enabled\n",
+                "output_fanout = run_fanout(\"--tosa-opt\")\n",
+                "conv_count = output_fanout.count(\"tosa.conv2d\")\n",
+                "if conv_count == 2:\n",
+                "    print(f\"[SUCCESS] Fan-out cloning created {conv_count} convolutions.\")\n",
+                "else:\n",
+                "    print(f\"[FAILURE] Expected 2 convolutions, found {conv_count}.\")"
             ],
             "metadata": {
                 "cellView": "form",
