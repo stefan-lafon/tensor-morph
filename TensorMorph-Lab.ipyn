@@ -4,7 +4,7 @@
     "metadata": {
         "colab": {
             "provenance": [],
-            "authorship_tag": "ABX9TyN85oxgCfzYP1eFiLPrPeeE"
+            "authorship_tag": "ABX9TyOiRgO+mhLqvk5qbThh6Mtf"
         },
         "kernelspec": {
             "name": "python3",
@@ -17,258 +17,13 @@
     "cells": [
         {
             "cell_type": "code",
-            "execution_count": 1,
+            "execution_count": null,
             "metadata": {
                 "id": "REqmtqFLs-WA",
                 "cellView": "form",
-                "collapsed": true,
-                "colab": {
-                    "base_uri": "https://localhost:8080/"
-                },
-                "executionInfo": {
-                    "status": "ok",
-                    "timestamp": 1766690020297,
-                    "user_tz": 480,
-                    "elapsed": 59962,
-                    "user": {
-                        "displayName": "Stefan Lafon",
-                        "userId": "17149650627927548318"
-                    }
-                },
-                "outputId": "d13e11bf-2574-4a5b-ae90-551616259994"
+                "collapsed": true
             },
-            "outputs": [
-                {
-                    "output_type": "stream",
-                    "name": "stdout",
-                    "text": [
-                        "Mounted at /content/drive\n",
-                        "--2025-12-25 19:12:58--  https://apt.llvm.org/llvm-snapshot.gpg.key\n",
-                        "Resolving apt.llvm.org (apt.llvm.org)... 199.232.194.49, 199.232.198.49, 2a04:4e42:4c::561, ...\n",
-                        "Connecting to apt.llvm.org (apt.llvm.org)|199.232.194.49|:443... connected.\n",
-                        "HTTP request sent, awaiting response... 200 OK\n",
-                        "Length: 3145 (3.1K) [application/octet-stream]\n",
-                        "Saving to: ‘STDOUT’\n",
-                        "\n",
-                        "-                   100%[===================>]   3.07K  --.-KB/s    in 0s      \n",
-                        "\n",
-                        "2025-12-25 19:12:58 (79.1 MB/s) - written to stdout [3145/3145]\n",
-                        "\n",
-                        "Warning: apt-key is deprecated. Manage keyring files in trusted.gpg.d instead (see apt-key(8)).\n",
-                        "OK\n",
-                        "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main\n",
-                        "Get:2 https://cloud.r-project.org/bin/linux/ubuntu jammy-cran40/ InRelease [3,632 B]\n",
-                        "Get:3 http://security.ubuntu.com/ubuntu jammy-security InRelease [129 kB]\n",
-                        "Get:1 https://apt.llvm.org/jammy llvm-toolchain-jammy-18 InRelease [6,833 B]\n",
-                        "Get:4 https://cli.github.com/packages stable InRelease [3,917 B]\n",
-                        "Hit:5 http://archive.ubuntu.com/ubuntu jammy InRelease\n",
-                        "Get:6 https://r2u.stat.illinois.edu/ubuntu jammy InRelease [6,555 B]\n",
-                        "Get:7 http://archive.ubuntu.com/ubuntu jammy-updates InRelease [128 kB]\n",
-                        "Hit:8 https://ppa.launchpadcontent.net/deadsnakes/ppa/ubuntu jammy InRelease\n",
-                        "Hit:9 https://ppa.launchpadcontent.net/ubuntugis/ppa/ubuntu jammy InRelease\n",
-                        "Get:10 https://apt.llvm.org/jammy llvm-toolchain-jammy-18/main amd64 Packages [12.6 kB]\n",
-                        "Get:11 http://archive.ubuntu.com/ubuntu jammy-backports InRelease [127 kB]\n",
-                        "Get:12 https://r2u.stat.illinois.edu/ubuntu jammy/main amd64 Packages [2,860 kB]\n",
-                        "Get:13 http://security.ubuntu.com/ubuntu jammy-security/main amd64 Packages [3,633 kB]\n",
-                        "Get:14 https://r2u.stat.illinois.edu/ubuntu jammy/main all Packages [9,572 kB]\n",
-                        "Get:15 http://security.ubuntu.com/ubuntu jammy-security/restricted amd64 Packages [6,205 kB]\n",
-                        "Get:16 http://archive.ubuntu.com/ubuntu jammy-updates/restricted amd64 Packages [6,411 kB]\n",
-                        "Get:17 http://archive.ubuntu.com/ubuntu jammy-updates/main amd64 Packages [3,966 kB]\n",
-                        "Get:18 http://archive.ubuntu.com/ubuntu jammy-updates/universe amd64 Packages [1,598 kB]\n",
-                        "Get:19 http://archive.ubuntu.com/ubuntu jammy-updates/multiverse amd64 Packages [69.2 kB]\n",
-                        "Get:20 http://archive.ubuntu.com/ubuntu jammy-backports/universe amd64 Packages [37.2 kB]\n",
-                        "Get:21 http://archive.ubuntu.com/ubuntu jammy-backports/main amd64 Packages [83.9 kB]\n",
-                        "Fetched 34.9 MB in 5s (6,933 kB/s)\n",
-                        "Reading package lists... Done\n",
-                        "W: http://apt.llvm.org/jammy/dists/llvm-toolchain-jammy-18/InRelease: Key is stored in legacy trusted.gpg keyring (/etc/apt/trusted.gpg), see the DEPRECATION section in apt-key(8) for details.\n",
-                        "W: Skipping acquire of configured file 'main/source/Sources' as repository 'https://r2u.stat.illinois.edu/ubuntu jammy InRelease' does not seem to provide it (sources.list entry misspelt?)\n",
-                        "Reading package lists... Done\n",
-                        "Building dependency tree... Done\n",
-                        "Reading state information... Done\n",
-                        "cmake is already the newest version (3.22.1-1ubuntu1.22.04.2).\n",
-                        "The following additional packages will be installed:\n",
-                        "  lib32gcc-s1 lib32stdc++6 libc6-i386 libclang-common-18-dev libclang-cpp18\n",
-                        "  libclang-rt-18-dev libclang1-18 libgc1 libllvm18 libmlir-18 libobjc-11-dev\n",
-                        "  libobjc4 libpfm4 libz3-4 libz3-dev llvm-18 llvm-18-linker-tools\n",
-                        "  llvm-18-runtime llvm-18-tools python3-pygments python3-yaml\n",
-                        "Suggested packages:\n",
-                        "  clang-18-doc wasi-libc llvm-18-doc python-pygments-doc ttf-bitstream-vera\n",
-                        "The following NEW packages will be installed:\n",
-                        "  clang-18 lib32gcc-s1 lib32stdc++6 libc6-i386 libclang-common-18-dev\n",
-                        "  libclang-cpp18 libclang-rt-18-dev libclang1-18 libgc1 libllvm18 libmlir-18\n",
-                        "  libmlir-18-dev libobjc-11-dev libobjc4 libpfm4 libz3-4 libz3-dev llvm-18\n",
-                        "  llvm-18-dev llvm-18-linker-tools llvm-18-runtime llvm-18-tools mlir-18-tools\n",
-                        "  ninja-build python3-pygments python3-yaml\n",
-                        "0 upgraded, 26 newly installed, 0 to remove and 6 not upgraded.\n",
-                        "Need to get 222 MB of archives.\n",
-                        "After this operation, 1,462 MB of additional disk space will be used.\n",
-                        "Get:1 https://apt.llvm.org/jammy llvm-toolchain-jammy-18/main amd64 libllvm18 amd64 1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144 [27.6 MB]\n",
-                        "Get:7 http://archive.ubuntu.com/ubuntu jammy/main amd64 python3-yaml amd64 5.4.1-1ubuntu1 [129 kB]\n",
-                        "Get:16 http://archive.ubuntu.com/ubuntu jammy/main amd64 libgc1 amd64 1:8.0.6-1.1build1 [96.8 kB]\n",
-                        "Get:17 http://archive.ubuntu.com/ubuntu jammy-updates/universe amd64 libobjc4 amd64 12.3.0-1ubuntu1~22.04.2 [48.7 kB]\n",
-                        "Get:18 http://archive.ubuntu.com/ubuntu jammy-updates/universe amd64 libobjc-11-dev amd64 11.4.0-1ubuntu1~22.04.2 [196 kB]\n",
-                        "Get:2 https://apt.llvm.org/jammy llvm-toolchain-jammy-18/main amd64 libclang-cpp18 amd64 1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144 [13.6 MB]\n",
-                        "Get:19 http://archive.ubuntu.com/ubuntu jammy-updates/main amd64 libc6-i386 amd64 2.35-0ubuntu3.11 [2,838 kB]\n",
-                        "Get:3 https://apt.llvm.org/jammy llvm-toolchain-jammy-18/main amd64 libclang-common-18-dev amd64 1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144 [766 kB]\n",
-                        "Get:4 https://apt.llvm.org/jammy llvm-toolchain-jammy-18/main amd64 llvm-18-linker-tools amd64 1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144 [1,386 kB]\n",
-                        "Get:5 https://apt.llvm.org/jammy llvm-toolchain-jammy-18/main amd64 libclang1-18 amd64 1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144 [7,900 kB]\n",
-                        "Get:20 http://archive.ubuntu.com/ubuntu jammy-updates/main amd64 lib32gcc-s1 amd64 12.3.0-1ubuntu1~22.04.2 [63.9 kB]\n",
-                        "Get:21 http://archive.ubuntu.com/ubuntu jammy-updates/main amd64 lib32stdc++6 amd64 12.3.0-1ubuntu1~22.04.2 [739 kB]\n",
-                        "Get:22 http://archive.ubuntu.com/ubuntu jammy-updates/main amd64 libpfm4 amd64 4.11.1+git32-gd0b85fb-1ubuntu0.1 [345 kB]\n",
-                        "Get:23 http://archive.ubuntu.com/ubuntu jammy-updates/main amd64 python3-pygments all 2.11.2+dfsg-2ubuntu0.1 [750 kB]\n",
-                        "Get:24 http://archive.ubuntu.com/ubuntu jammy/universe amd64 libz3-4 amd64 4.8.12-1 [5,766 kB]\n",
-                        "Get:6 https://apt.llvm.org/jammy llvm-toolchain-jammy-18/main amd64 clang-18 amd64 1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144 [150 kB]\n",
-                        "Get:8 https://apt.llvm.org/jammy llvm-toolchain-jammy-18/main amd64 libclang-rt-18-dev amd64 1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144 [3,842 kB]\n",
-                        "Get:9 https://apt.llvm.org/jammy llvm-toolchain-jammy-18/main amd64 libmlir-18 amd64 1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144 [11.7 MB]\n",
-                        "Get:25 http://archive.ubuntu.com/ubuntu jammy/universe amd64 libz3-dev amd64 4.8.12-1 [72.2 kB]\n",
-                        "Get:26 http://archive.ubuntu.com/ubuntu jammy/universe amd64 ninja-build amd64 1.10.1-1 [111 kB]\n",
-                        "Get:10 https://apt.llvm.org/jammy llvm-toolchain-jammy-18/main amd64 libmlir-18-dev amd64 1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144 [24.3 MB]\n",
-                        "Get:11 https://apt.llvm.org/jammy llvm-toolchain-jammy-18/main amd64 llvm-18-runtime amd64 1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144 [610 kB]\n",
-                        "Get:12 https://apt.llvm.org/jammy llvm-toolchain-jammy-18/main amd64 llvm-18 amd64 1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144 [25.5 MB]\n",
-                        "Get:13 https://apt.llvm.org/jammy llvm-toolchain-jammy-18/main amd64 llvm-18-tools amd64 1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144 [572 kB]\n",
-                        "Get:14 https://apt.llvm.org/jammy llvm-toolchain-jammy-18/main amd64 llvm-18-dev amd64 1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144 [47.0 MB]\n",
-                        "Get:15 https://apt.llvm.org/jammy llvm-toolchain-jammy-18/main amd64 mlir-18-tools amd64 1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144 [45.7 MB]\n",
-                        "Fetched 222 MB in 4s (63.1 MB/s)\n",
-                        "Selecting previously unselected package python3-yaml.\n",
-                        "(Reading database ... 117528 files and directories currently installed.)\n",
-                        "Preparing to unpack .../00-python3-yaml_5.4.1-1ubuntu1_amd64.deb ...\n",
-                        "Unpacking python3-yaml (5.4.1-1ubuntu1) ...\n",
-                        "Selecting previously unselected package libllvm18:amd64.\n",
-                        "Preparing to unpack .../01-libllvm18_1%3a18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144_amd64.deb ...\n",
-                        "Unpacking libllvm18:amd64 (1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144) ...\n",
-                        "Selecting previously unselected package libclang-cpp18.\n",
-                        "Preparing to unpack .../02-libclang-cpp18_1%3a18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144_amd64.deb ...\n",
-                        "Unpacking libclang-cpp18 (1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144) ...\n",
-                        "Selecting previously unselected package libgc1:amd64.\n",
-                        "Preparing to unpack .../03-libgc1_1%3a8.0.6-1.1build1_amd64.deb ...\n",
-                        "Unpacking libgc1:amd64 (1:8.0.6-1.1build1) ...\n",
-                        "Selecting previously unselected package libobjc4:amd64.\n",
-                        "Preparing to unpack .../04-libobjc4_12.3.0-1ubuntu1~22.04.2_amd64.deb ...\n",
-                        "Unpacking libobjc4:amd64 (12.3.0-1ubuntu1~22.04.2) ...\n",
-                        "Selecting previously unselected package libobjc-11-dev:amd64.\n",
-                        "Preparing to unpack .../05-libobjc-11-dev_11.4.0-1ubuntu1~22.04.2_amd64.deb ...\n",
-                        "Unpacking libobjc-11-dev:amd64 (11.4.0-1ubuntu1~22.04.2) ...\n",
-                        "Selecting previously unselected package libclang-common-18-dev:amd64.\n",
-                        "Preparing to unpack .../06-libclang-common-18-dev_1%3a18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144_amd64.deb ...\n",
-                        "Unpacking libclang-common-18-dev:amd64 (1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144) ...\n",
-                        "Selecting previously unselected package llvm-18-linker-tools.\n",
-                        "Preparing to unpack .../07-llvm-18-linker-tools_1%3a18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144_amd64.deb ...\n",
-                        "Unpacking llvm-18-linker-tools (1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144) ...\n",
-                        "Selecting previously unselected package libclang1-18.\n",
-                        "Preparing to unpack .../08-libclang1-18_1%3a18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144_amd64.deb ...\n",
-                        "Unpacking libclang1-18 (1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144) ...\n",
-                        "Selecting previously unselected package clang-18.\n",
-                        "Preparing to unpack .../09-clang-18_1%3a18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144_amd64.deb ...\n",
-                        "Unpacking clang-18 (1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144) ...\n",
-                        "Selecting previously unselected package libc6-i386.\n",
-                        "Preparing to unpack .../10-libc6-i386_2.35-0ubuntu3.11_amd64.deb ...\n",
-                        "Unpacking libc6-i386 (2.35-0ubuntu3.11) ...\n",
-                        "Selecting previously unselected package lib32gcc-s1.\n",
-                        "Preparing to unpack .../11-lib32gcc-s1_12.3.0-1ubuntu1~22.04.2_amd64.deb ...\n",
-                        "Unpacking lib32gcc-s1 (12.3.0-1ubuntu1~22.04.2) ...\n",
-                        "Selecting previously unselected package lib32stdc++6.\n",
-                        "Preparing to unpack .../12-lib32stdc++6_12.3.0-1ubuntu1~22.04.2_amd64.deb ...\n",
-                        "Unpacking lib32stdc++6 (12.3.0-1ubuntu1~22.04.2) ...\n",
-                        "Selecting previously unselected package libclang-rt-18-dev:amd64.\n",
-                        "Preparing to unpack .../13-libclang-rt-18-dev_1%3a18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144_amd64.deb ...\n",
-                        "Unpacking libclang-rt-18-dev:amd64 (1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144) ...\n",
-                        "Selecting previously unselected package libmlir-18:amd64.\n",
-                        "Preparing to unpack .../14-libmlir-18_1%3a18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144_amd64.deb ...\n",
-                        "Unpacking libmlir-18:amd64 (1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144) ...\n",
-                        "Selecting previously unselected package libmlir-18-dev:amd64.\n",
-                        "Preparing to unpack .../15-libmlir-18-dev_1%3a18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144_amd64.deb ...\n",
-                        "Unpacking libmlir-18-dev:amd64 (1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144) ...\n",
-                        "Selecting previously unselected package llvm-18-runtime.\n",
-                        "Preparing to unpack .../16-llvm-18-runtime_1%3a18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144_amd64.deb ...\n",
-                        "Unpacking llvm-18-runtime (1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144) ...\n",
-                        "Selecting previously unselected package libpfm4:amd64.\n",
-                        "Preparing to unpack .../17-libpfm4_4.11.1+git32-gd0b85fb-1ubuntu0.1_amd64.deb ...\n",
-                        "Unpacking libpfm4:amd64 (4.11.1+git32-gd0b85fb-1ubuntu0.1) ...\n",
-                        "Selecting previously unselected package llvm-18.\n",
-                        "Preparing to unpack .../18-llvm-18_1%3a18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144_amd64.deb ...\n",
-                        "Unpacking llvm-18 (1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144) ...\n",
-                        "Selecting previously unselected package python3-pygments.\n",
-                        "Preparing to unpack .../19-python3-pygments_2.11.2+dfsg-2ubuntu0.1_all.deb ...\n",
-                        "Unpacking python3-pygments (2.11.2+dfsg-2ubuntu0.1) ...\n",
-                        "Selecting previously unselected package llvm-18-tools.\n",
-                        "Preparing to unpack .../20-llvm-18-tools_1%3a18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144_amd64.deb ...\n",
-                        "Unpacking llvm-18-tools (1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144) ...\n",
-                        "Selecting previously unselected package libz3-4:amd64.\n",
-                        "Preparing to unpack .../21-libz3-4_4.8.12-1_amd64.deb ...\n",
-                        "Unpacking libz3-4:amd64 (4.8.12-1) ...\n",
-                        "Selecting previously unselected package libz3-dev:amd64.\n",
-                        "Preparing to unpack .../22-libz3-dev_4.8.12-1_amd64.deb ...\n",
-                        "Unpacking libz3-dev:amd64 (4.8.12-1) ...\n",
-                        "Selecting previously unselected package llvm-18-dev.\n",
-                        "Preparing to unpack .../23-llvm-18-dev_1%3a18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144_amd64.deb ...\n",
-                        "Unpacking llvm-18-dev (1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144) ...\n",
-                        "Selecting previously unselected package mlir-18-tools.\n",
-                        "Preparing to unpack .../24-mlir-18-tools_1%3a18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144_amd64.deb ...\n",
-                        "Unpacking mlir-18-tools (1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144) ...\n",
-                        "Selecting previously unselected package ninja-build.\n",
-                        "Preparing to unpack .../25-ninja-build_1.10.1-1_amd64.deb ...\n",
-                        "Unpacking ninja-build (1.10.1-1) ...\n",
-                        "Setting up python3-yaml (5.4.1-1ubuntu1) ...\n",
-                        "Setting up ninja-build (1.10.1-1) ...\n",
-                        "Setting up python3-pygments (2.11.2+dfsg-2ubuntu0.1) ...\n",
-                        "Setting up libz3-4:amd64 (4.8.12-1) ...\n",
-                        "Setting up libpfm4:amd64 (4.11.1+git32-gd0b85fb-1ubuntu0.1) ...\n",
-                        "Setting up libclang-common-18-dev:amd64 (1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144) ...\n",
-                        "Setting up libgc1:amd64 (1:8.0.6-1.1build1) ...\n",
-                        "Setting up libc6-i386 (2.35-0ubuntu3.11) ...\n",
-                        "Setting up libllvm18:amd64 (1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144) ...\n",
-                        "Setting up libclang1-18 (1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144) ...\n",
-                        "Setting up libz3-dev:amd64 (4.8.12-1) ...\n",
-                        "Setting up mlir-18-tools (1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144) ...\n",
-                        "Setting up libobjc4:amd64 (12.3.0-1ubuntu1~22.04.2) ...\n",
-                        "Setting up llvm-18-tools (1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144) ...\n",
-                        "Setting up libmlir-18:amd64 (1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144) ...\n",
-                        "Setting up lib32gcc-s1 (12.3.0-1ubuntu1~22.04.2) ...\n",
-                        "Setting up lib32stdc++6 (12.3.0-1ubuntu1~22.04.2) ...\n",
-                        "Setting up llvm-18-linker-tools (1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144) ...\n",
-                        "Setting up llvm-18-runtime (1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144) ...\n",
-                        "Setting up libclang-cpp18 (1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144) ...\n",
-                        "Setting up libclang-rt-18-dev:amd64 (1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144) ...\n",
-                        "Setting up libobjc-11-dev:amd64 (11.4.0-1ubuntu1~22.04.2) ...\n",
-                        "Setting up clang-18 (1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144) ...\n",
-                        "Setting up libmlir-18-dev:amd64 (1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144) ...\n",
-                        "Setting up llvm-18 (1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144) ...\n",
-                        "Setting up llvm-18-dev (1:18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144) ...\n",
-                        "Processing triggers for man-db (2.10.2-1) ...\n",
-                        "Processing triggers for libc-bin (2.35-0ubuntu3.11) ...\n",
-                        "/sbin/ldconfig.real: /usr/local/lib/libhwloc.so.15 is not a symbolic link\n",
-                        "\n",
-                        "/sbin/ldconfig.real: /usr/local/lib/libtbbbind_2_5.so.3 is not a symbolic link\n",
-                        "\n",
-                        "/sbin/ldconfig.real: /usr/local/lib/libtbbbind.so.3 is not a symbolic link\n",
-                        "\n",
-                        "/sbin/ldconfig.real: /usr/local/lib/libur_adapter_opencl.so.0 is not a symbolic link\n",
-                        "\n",
-                        "/sbin/ldconfig.real: /usr/local/lib/libtcm.so.1 is not a symbolic link\n",
-                        "\n",
-                        "/sbin/ldconfig.real: /usr/local/lib/libtbbmalloc_proxy.so.2 is not a symbolic link\n",
-                        "\n",
-                        "/sbin/ldconfig.real: /usr/local/lib/libtbbbind_2_0.so.3 is not a symbolic link\n",
-                        "\n",
-                        "/sbin/ldconfig.real: /usr/local/lib/libur_adapter_level_zero.so.0 is not a symbolic link\n",
-                        "\n",
-                        "/sbin/ldconfig.real: /usr/local/lib/libtbb.so.12 is not a symbolic link\n",
-                        "\n",
-                        "/sbin/ldconfig.real: /usr/local/lib/libur_adapter_level_zero_v2.so.0 is not a symbolic link\n",
-                        "\n",
-                        "/sbin/ldconfig.real: /usr/local/lib/libtcm_debug.so.1 is not a symbolic link\n",
-                        "\n",
-                        "/sbin/ldconfig.real: /usr/local/lib/libtbbmalloc.so.2 is not a symbolic link\n",
-                        "\n",
-                        "/sbin/ldconfig.real: /usr/local/lib/libur_loader.so.0 is not a symbolic link\n",
-                        "\n",
-                        "/sbin/ldconfig.real: /usr/local/lib/libumf.so.1 is not a symbolic link\n",
-                        "\n",
-                        "\n",
-                        "--- Setup Complete ---\n"
-                    ]
-                }
-            ],
+            "outputs": [],
             "source": [
                 "# @title 1. Environment initialization\n",
                 "# This cell mounts Drive and installs the LLVM/MLIR 18 toolchain.\n",
@@ -335,63 +90,10 @@
             ],
             "metadata": {
                 "id": "qlK73wr7tOrV",
-                "colab": {
-                    "base_uri": "https://localhost:8080/"
-                },
-                "cellView": "form",
-                "executionInfo": {
-                    "status": "ok",
-                    "timestamp": 1766701208658,
-                    "user_tz": 480,
-                    "elapsed": 33964,
-                    "user": {
-                        "displayName": "Stefan Lafon",
-                        "userId": "17149650627927548318"
-                    }
-                },
-                "outputId": "206ff2a5-3994-402c-87b4-df0428e74f11"
+                "cellView": "form"
             },
-            "execution_count": 24,
-            "outputs": [
-                {
-                    "output_type": "stream",
-                    "name": "stdout",
-                    "text": [
-                        "/content\n",
-                        "Syncing files from Drive...\n",
-                        "-- The C compiler identification is Clang 18.1.8\n",
-                        "-- The CXX compiler identification is Clang 18.1.8\n",
-                        "-- Detecting C compiler ABI info\n",
-                        "-- Detecting C compiler ABI info - done\n",
-                        "-- Check for working C compiler: /usr/bin/clang-18 - skipped\n",
-                        "-- Detecting C compile features\n",
-                        "-- Detecting C compile features - done\n",
-                        "-- Detecting CXX compiler ABI info\n",
-                        "-- Detecting CXX compiler ABI info - done\n",
-                        "-- Check for working CXX compiler: /usr/bin/clang++-18 - skipped\n",
-                        "-- Detecting CXX compile features\n",
-                        "-- Detecting CXX compile features - done\n",
-                        "-- Performing Test HAVE_FFI_CALL\n",
-                        "-- Performing Test HAVE_FFI_CALL - Success\n",
-                        "-- Found FFI: /usr/lib/x86_64-linux-gnu/libffi.so\n",
-                        "-- Could NOT find LibEdit (missing: LibEdit_INCLUDE_DIRS LibEdit_LIBRARIES) \n",
-                        "-- Performing Test Terminfo_LINKABLE\n",
-                        "-- Performing Test Terminfo_LINKABLE - Success\n",
-                        "-- Found Terminfo: /usr/lib/x86_64-linux-gnu/libtinfo.so\n",
-                        "-- Found ZLIB: /usr/lib/x86_64-linux-gnu/libz.so (found version \"1.2.11\")\n",
-                        "-- Found zstd: /usr/lib/x86_64-linux-gnu/libzstd.so\n",
-                        "-- Found LibXml2: /usr/lib/x86_64-linux-gnu/libxml2.so (found version \"2.9.13\")\n",
-                        "-- Found CURL: /usr/lib/x86_64-linux-gnu/libcurl.so (found version \"7.81.0\")\n",
-                        "-- Could NOT find LibEdit (missing: LibEdit_INCLUDE_DIRS LibEdit_LIBRARIES) \n",
-                        "-- Using MLIRConfig.cmake in: /usr/lib/llvm-18/lib/cmake/mlir\n",
-                        "-- Using LLVMConfig.cmake in: /usr/lib/llvm-18/lib/cmake/llvm\n",
-                        "-- Configuring done (1.4s)\n",
-                        "-- Generating done (0.0s)\n",
-                        "-- Build files have been written to: /content/tensormorph_local/build\n",
-                        "[6/6] Linking CXX executable tensormorph-opt\u001b[K\n"
-                    ]
-                }
-            ]
+            "execution_count": null,
+            "outputs": []
         },
         {
             "cell_type": "code",
@@ -399,62 +101,32 @@
                 "# @title 3. Test MLIR (Conv -> Add -> Clamp)\n",
                 "%%writefile /content/tensormorph_local/test.mlir\n",
                 "module {\n",
-                "  func.func @main(%input: tensor<1x4x4x1xf32>) -> tensor<1x4x4x1xf32> {\n",
-                "    %c_weights = \"tosa.const\"() {value = dense<0.5> : tensor<1x1x1x1xf32>} : () -> tensor<1x1x1x1xf32>\n",
-                "    %c_bias    = \"tosa.const\"() {value = dense<0.0> : tensor<1xf32>} : () -> tensor<1xf32>\n",
-                "    %c_add     = \"tosa.const\"() {value = dense<1.0> : tensor<1xf32>} : () -> tensor<1xf32>\n",
+                "  func.func @main(%input: tensor<1x1024x1024x1xf32>) -> tensor<1x1024x1024x1xf32> {\n",
+                "    %c_w = \"tosa.const\"() {value = dense<1.1> : tensor<1x1x1x1xf32>} : () -> tensor<1x1x1x1xf32>\n",
+                "    %c_b = \"tosa.const\"() {value = dense<0.1> : tensor<1xf32>} : () -> tensor<1xf32>\n",
                 "\n",
-                "    // 1. Base Convolution\n",
-                "    %0 = \"tosa.conv2d\"(%input, %c_weights, %c_bias) {\n",
-                "      dilation = array<i64: 1, 1>,\n",
-                "      pad = array<i64: 0, 0, 0, 0>,\n",
-                "      stride = array<i64: 1, 1>\n",
-                "    } : (tensor<1x4x4x1xf32>, tensor<1x1x1x1xf32>, tensor<1xf32>) -> tensor<1x4x4x1xf32>\n",
+                "    %c_m1 = \"tosa.const\"() {value = dense<2.0> : tensor<1xf32>} : () -> tensor<1xf32>\n",
+                "    %c_a1 = \"tosa.const\"() {value = dense<1.0> : tensor<1xf32>} : () -> tensor<1xf32>\n",
+                "    %c_s1 = \"tosa.const\"() {value = dense<0.5> : tensor<1xf32>} : () -> tensor<1xf32>\n",
                 "\n",
-                "    // 2. Add operation that should be folded into the bias above\n",
-                "    %1 = \"tosa.add\"(%0, %c_add) : (tensor<1x4x4x1xf32>, tensor<1xf32>) -> tensor<1x4x4x1xf32>\n",
+                "    // 1x1 Conv - Very low compute, high memory pressure\n",
+                "    %0 = \"tosa.conv2d\"(%input, %c_w, %c_b) {\n",
+                "      dilation = array<i64: 1, 1>, pad = array<i64: 0, 0, 0, 0>, stride = array<i64: 1, 1>\n",
+                "    } : (tensor<1x1024x1024x1xf32>, tensor<1x1x1x1xf32>, tensor<1xf32>) -> tensor<1x1024x1024x1xf32>\n",
                 "\n",
-                "    // 3. Clamp operation acting as a ReLU (0 to INT64_MAX)\n",
-                "    // This should be fused into the Conv2D as an attribute.\n",
-                "    %result = \"tosa.clamp\"(%1) {\n",
-                "      min_int = 0 : i64,\n",
-                "      max_int = 9223372036854775807 : i64, // INT64_MAX\n",
-                "      min_fp = 0.0 : f32,\n",
-                "      max_fp = 3.40282347e+38 : f32     // FLT_MAX\n",
-                "    } : (tensor<1x4x4x1xf32>) -> tensor<1x4x4x1xf32>\n",
+                "    %1 = \"tosa.mul\"(%0, %c_m1) {shift = 0 : i8} : (tensor<1x1024x1024x1xf32>, tensor<1xf32>) -> tensor<1x1024x1024x1xf32>\n",
+                "    %2 = \"tosa.add\"(%1, %c_a1) : (tensor<1x1024x1024x1xf32>, tensor<1xf32>) -> tensor<1x1024x1024x1xf32>\n",
+                "    %result = \"tosa.sub\"(%2, %c_s1) : (tensor<1x1024x1024x1xf32>, tensor<1xf32>) -> tensor<1x1024x1024x1xf32>\n",
                 "\n",
-                "    return %result : tensor<1x4x4x1xf32>\n",
+                "    return %result : tensor<1x1024x1024x1xf32>\n",
                 "  }\n",
                 "}"
             ],
             "metadata": {
-                "id": "JIRbH7HKSHEz",
-                "cellView": "form",
-                "colab": {
-                    "base_uri": "https://localhost:8080/"
-                },
-                "executionInfo": {
-                    "status": "ok",
-                    "timestamp": 1766699798616,
-                    "user_tz": 480,
-                    "elapsed": 13,
-                    "user": {
-                        "displayName": "Stefan Lafon",
-                        "userId": "17149650627927548318"
-                    }
-                },
-                "outputId": "9308b7dc-5702-422b-cbe7-33a9ad005cef"
+                "id": "JIRbH7HKSHEz"
             },
-            "execution_count": 11,
-            "outputs": [
-                {
-                    "output_type": "stream",
-                    "name": "stdout",
-                    "text": [
-                        "Writing /content/tensormorph_local/test.mlir\n"
-                    ]
-                }
-            ]
+            "execution_count": null,
+            "outputs": []
         },
         {
             "cell_type": "code",
@@ -467,40 +139,10 @@
             ],
             "metadata": {
                 "id": "TVD4Y9TzSVVg",
-                "colab": {
-                    "base_uri": "https://localhost:8080/"
-                },
-                "cellView": "form",
-                "executionInfo": {
-                    "status": "ok",
-                    "timestamp": 1766699798703,
-                    "user_tz": 480,
-                    "elapsed": 83,
-                    "user": {
-                        "displayName": "Stefan Lafon",
-                        "userId": "17149650627927548318"
-                    }
-                },
-                "outputId": "11cec12a-5b2e-425d-fc94-6892e1901576"
+                "cellView": "form"
             },
-            "execution_count": 12,
-            "outputs": [
-                {
-                    "output_type": "stream",
-                    "name": "stdout",
-                    "text": [
-                        "module {\n",
-                        "  func.func @main(%arg0: tensor<1x4x4x1xf32>) -> tensor<1x4x4x1xf32> {\n",
-                        "    %0 = \"tosa.const\"() <{value = dense<5.000000e-01> : tensor<1x1x1x1xf32>}> : () -> tensor<1x1x1x1xf32>\n",
-                        "    %1 = \"tosa.const\"() <{value = dense<1.000000e+00> : tensor<1xf32>}> : () -> tensor<1xf32>\n",
-                        "    %2 = tosa.conv2d %arg0, %0, %1 {clamp_max = 9223372036854775807 : i64, clamp_min = 0 : i64, dilation = array<i64: 1, 1>, fused_activation = \"clamp\", pad = array<i64: 0, 0, 0, 0>, stride = array<i64: 1, 1>} : (tensor<1x4x4x1xf32>, tensor<1x1x1x1xf32>, tensor<1xf32>) -> tensor<1x4x4x1xf32>\n",
-                        "    return %2 : tensor<1x4x4x1xf32>\n",
-                        "  }\n",
-                        "}\n",
-                        "\n"
-                    ]
-                }
-            ]
+            "execution_count": null,
+            "outputs": []
         },
         {
             "cell_type": "code",
@@ -537,32 +179,10 @@
             ],
             "metadata": {
                 "id": "eZkQ9BTNKA-0",
-                "colab": {
-                    "base_uri": "https://localhost:8080/"
-                },
-                "cellView": "form",
-                "executionInfo": {
-                    "status": "ok",
-                    "timestamp": 1766699798824,
-                    "user_tz": 480,
-                    "elapsed": 117,
-                    "user": {
-                        "displayName": "Stefan Lafon",
-                        "userId": "17149650627927548318"
-                    }
-                },
-                "outputId": "eff5ec4e-b320-448d-c98e-258c2e40dbcc"
+                "cellView": "form"
             },
-            "execution_count": 13,
-            "outputs": [
-                {
-                    "output_type": "stream",
-                    "name": "stdout",
-                    "text": [
-                        "Lowering utility script updated with explicit pass nesting.\n"
-                    ]
-                }
-            ]
+            "execution_count": null,
+            "outputs": []
         },
         {
             "cell_type": "code",
@@ -571,56 +191,29 @@
                 "with open(\"/content/tensormorph_local/benchmark_wrapper.mlir\", \"w\") as f:\n",
                 "    f.write('''\n",
                 "module {\n",
-                "  // Global definitions for our input data\n",
-                "  memref.global \"private\" constant @input_data : memref<1x4x4x1xf32> = dense<1.0>\n",
-                "  memref.global \"private\" constant @weight_data : memref<1x1x1x1xf32> = dense<0.5>\n",
-                "  memref.global \"private\" constant @bias_data : memref<1xf32> = dense<0.0>\n",
+                "  // Global input initialized to 1.0 for consistent execution\n",
+                "  memref.global \"private\" constant @input_data : memref<1x1024x1024x1xf32> = dense<1.0>\n",
                 "\n",
-                "  // Updated signature to use memrefs directly\n",
-                "  func.func private @main(memref<1x4x4x1xf32>, memref<1x1x1x1xf32>, memref<1xf32>) -> memref<1x4x4x1xf32>\n",
+                "  // Signature matches the 1x1 memory stress test case\n",
+                "  func.func private @main(memref<1x1024x1024x1xf32>) -> memref<1x1024x1024x1xf32>\n",
                 "\n",
                 "  func.func @benchmark_entry() {\n",
-                "    %in = memref.get_global @input_data : memref<1x4x4x1xf32>\n",
-                "    %w  = memref.get_global @weight_data : memref<1x1x1x1xf32>\n",
-                "    %b  = memref.get_global @bias_data : memref<1xf32>\n",
+                "    %in = memref.get_global @input_data : memref<1x1024x1024x1xf32>\n",
                 "\n",
-                "    // Call @main using the pre-allocated memory\n",
-                "    %res = func.call @main(%in, %w, %b) : (memref<1x4x4x1xf32>, memref<1x1x1x1xf32>, memref<1xf32>) -> memref<1x4x4x1xf32>\n",
+                "    // The call to @main processes 1 million pixels per iteration\n",
+                "    %res = func.call @main(%in) : (memref<1x1024x1024x1xf32>) -> memref<1x1024x1024x1xf32>\n",
                 "\n",
                 "    return\n",
                 "  }\n",
                 "}\n",
                 "''')\n",
-                "print(\"Benchmark wrapper updated to use stable Memref Globals.\")"
+                "print(\"Benchmark wrapper updated for 1024x1024 memory-bound stress test.\")"
             ],
             "metadata": {
-                "id": "5YpbvkGQKDQq",
-                "cellView": "form",
-                "colab": {
-                    "base_uri": "https://localhost:8080/"
-                },
-                "executionInfo": {
-                    "status": "ok",
-                    "timestamp": 1766699798880,
-                    "user_tz": 480,
-                    "elapsed": 53,
-                    "user": {
-                        "displayName": "Stefan Lafon",
-                        "userId": "17149650627927548318"
-                    }
-                },
-                "outputId": "c3fd3223-59b3-4d82-b4ce-9f40c2f49dcc"
+                "id": "5YpbvkGQKDQq"
             },
-            "execution_count": 14,
-            "outputs": [
-                {
-                    "output_type": "stream",
-                    "name": "stdout",
-                    "text": [
-                        "Benchmark wrapper updated to use stable Memref Globals.\n"
-                    ]
-                }
-            ]
+            "execution_count": null,
+            "outputs": []
         },
         {
             "cell_type": "code",
@@ -630,7 +223,7 @@
                 "import time\n",
                 "import numpy as np\n",
                 "\n",
-                "def run_bench(mlir_file, label, iterations=50):\n",
+                "def run_bench(mlir_file, label, iterations=100):\n",
                 "    print(f\"Executing: {label}\")\n",
                 "\n",
                 "    # 1. Merge the test IR with the wrapper\n",
@@ -655,7 +248,7 @@
                 "\n",
                 "    latencies = []\n",
                 "    # Warmup\n",
-                "    for _ in range(5):\n",
+                "    for _ in range(10):\n",
                 "        subprocess.run(cmd, capture_output=True)\n",
                 "\n",
                 "    for _ in range(iterations):\n",
@@ -674,45 +267,19 @@
                 "# Generate optimized version\n",
                 "!/content/tensormorph_local/build/tensormorph-opt --tosa-opt --allow-unregistered-dialect {base_ir} -o {opt_ir}\n",
                 "\n",
-                "t_base = run_bench(base_ir, \"Baseline (Unoptimized)\")\n",
-                "t_opt = run_bench(opt_ir, \"Fused (TensorMorph)\")\n",
+                "t_base = run_bench(base_ir, \"Baseline (6 Pointwise Ops)\")\n",
+                "t_opt = run_bench(opt_ir, \"Fused (1 Optimized Op)\")\n",
                 "\n",
                 "if t_base and t_opt:\n",
                 "    speedup = (t_base / t_opt)\n",
-                "    print(f\"Total Speedup: {speedup:.2f}x\")"
+                "    print(f\"\\nResulting Speedup: {speedup:.2f}x\")"
             ],
             "metadata": {
                 "id": "RYiSgdBzKE4K",
-                "colab": {
-                    "base_uri": "https://localhost:8080/"
-                },
-                "cellView": "form",
-                "executionInfo": {
-                    "status": "ok",
-                    "timestamp": 1766699801875,
-                    "user_tz": 480,
-                    "elapsed": 3003,
-                    "user": {
-                        "displayName": "Stefan Lafon",
-                        "userId": "17149650627927548318"
-                    }
-                },
-                "outputId": "662974be-32bc-4074-ab4a-4ec242ce2847"
+                "cellView": "form"
             },
-            "execution_count": 15,
-            "outputs": [
-                {
-                    "output_type": "stream",
-                    "name": "stdout",
-                    "text": [
-                        "Executing: Baseline (Unoptimized)\n",
-                        "Average: 25.2135 ms (+/- 2.4700)\n",
-                        "Executing: Fused (TensorMorph)\n",
-                        "Average: 24.9762 ms (+/- 1.9753)\n",
-                        "Total Speedup: 1.01x\n"
-                    ]
-                }
-            ]
+            "execution_count": null,
+            "outputs": []
         },
         {
             "cell_type": "code",
@@ -757,45 +324,10 @@
             ],
             "metadata": {
                 "id": "WX_gAnZljSBO",
-                "colab": {
-                    "base_uri": "https://localhost:8080/"
-                },
-                "cellView": "form",
-                "executionInfo": {
-                    "status": "ok",
-                    "timestamp": 1766701222499,
-                    "user_tz": 480,
-                    "elapsed": 362,
-                    "user": {
-                        "displayName": "Stefan Lafon",
-                        "userId": "17149650627927548318"
-                    }
-                },
-                "outputId": "4e082d2b-545b-4b32-9ad7-7c950fc5e1f1"
+                "cellView": "form"
             },
-            "execution_count": 26,
-            "outputs": [
-                {
-                    "output_type": "stream",
-                    "name": "stdout",
-                    "text": [
-                        "Tests synced from Drive.\n",
-                        "\n",
-                        "[PASS] conv_add_clamp.mlir\n",
-                        "[PASS] conv_affine_fusion.mlir\n",
-                        "[PASS] conv_mul_fusion.mlir\n",
-                        "[PASS] conv_sub_fusion.mlir\n",
-                        "[PASS] identity_add.mlir\n",
-                        "[PASS] identity_mul.mlir\n",
-                        "[PASS] identity_sub.mlir\n",
-                        "[PASS] mega_fusion.mlir\n",
-                        "[PASS] pointwise_add_chain.mlir\n",
-                        "[PASS] pointwise_mul_chain.mlir\n",
-                        "\n",
-                        "Summary: 10/10 tests passed.\n"
-                    ]
-                }
-            ]
+            "execution_count": null,
+            "outputs": []
         },
         {
             "cell_type": "code",
@@ -830,37 +362,11 @@
                 "    print(\"[FAILURE] Optimization was still applied despite the flag.\")"
             ],
             "metadata": {
-                "colab": {
-                    "base_uri": "https://localhost:8080/"
-                },
                 "cellView": "form",
-                "id": "wx_hPH4kmgSR",
-                "executionInfo": {
-                    "status": "ok",
-                    "timestamp": 1766701290929,
-                    "user_tz": 480,
-                    "elapsed": 72,
-                    "user": {
-                        "displayName": "Stefan Lafon",
-                        "userId": "17149650627927548318"
-                    }
-                },
-                "outputId": "d2196812-260f-4e6e-ad55-708e7182e452"
+                "id": "wx_hPH4kmgSR"
             },
-            "execution_count": 27,
-            "outputs": [
-                {
-                    "output_type": "stream",
-                    "name": "stdout",
-                    "text": [
-                        "--- Case 1: Default (All Optimizations ON) ---\n",
-                        "[SUCCESS] Clamp was fused into Conv2D as expected.\n",
-                        "\n",
-                        "--- Case 2: Disable Activation Fusion (--tosa-opt=\"fuse-activations=false\") ---\n",
-                        "[SUCCESS] Clamp remains a separate operation. Toggle works!\n"
-                    ]
-                }
-            ]
+            "execution_count": null,
+            "outputs": []
         }
     ]
 }
