@@ -1,29 +1,33 @@
 # TensorMorph
 
-TensorMorph is a command-line utility built on MLIR (LLVM) for experimenting with graph-level optimizations. The tool provides a sandbox for implementing operator fusion patterns and graph restructuring using the `PatternRewriter` infrastructure.
+TensorMorph is a high-performance MLIR-based utility for experimenting with TOSA graph optimizations. It provides a modular sandbox for folding redundant spatial, algebraic, and linear operations into convolution anchors.
 
-## Supported Transformation Patterns
+## Transformation Suite
 
 ### Structural Fusion (Anchor: tosa.conv2d)
-* **Linear Math Folding**: Greedily consumes `tosa.add`, `tosa.sub`, and `tosa.mul` chains following a convolution.
-* **Activation Injection**: Fuses `tosa.clamp` (ReLU/ReLU6) into convolution attributes.
-* **Transpose Folding**: Eliminates `tosa.transpose` operations by permuting convolution weights at compile-time. This effectively converts runtime data movement into static constant rearrangement.
-* **Fan-out Cloning**: Enables fusion even when a convolution has multiple consumers. The optimizer will "clone" the convolution for each branch, allowing local fusions to proceed and improving data locality at the expense of redundant computation.
+* **Linear Math Folding**: Greedily consumes `tosa.add`, `tosa.sub`, and `tosa.mul` layers following a convolution, baking their effects into weights and biases.
+* **Padding Elimination**: Absorbs explicit `tosa.pad` operations into the internal convolution padding attribute, eliminating redundant memory copies.
+* **Transpose Folding**: Bakes input spatial permutations into weight constants at compile-time, converting runtime overhead into zero-cost constant rearrangement.
+* **Activation Injection**: Fuses `tosa.clamp` (ReLU/ReLU6) operations directly into convolution attributes.
+* **Fan-out Cloning**: Automatically clones anchors when they have multiple consumers to preserve fusion potential and data locality.
 
 ### Algebraic & Pointwise Folding
-* **Pointwise Chains**: Collapses back-to-back additions or multiplications.
-* **Arithmetic Identities**: Eliminates $x + 0$, $x \times 1$, and $x - 0$.
+* **Pointwise Chains**: Collapses sequential operations (e.g., `(x + 5) + 10`) into a single combined operation.
+* **Arithmetic Identities**: Detects and removes redundant operations such as $x + 0$ or $x \times 1$.
 
 ## Optimization Control Flags
 
 | Flag | Default | Description |
 | :--- | :--- | :--- |
-| `fuse-activations` | `true` | Fuses `tosa.clamp` into `tosa.conv2d`. |
-| `fuse-transpose` | `true` | Folds `tosa.transpose` into convolution weights. |
-| `fuse-fanout` | `true` | Allows cloning operations to enable fusion across multiple users. |
-| `fold-algebraic` | `true` | Enables pure algebraic identities (Add+Add, etc). |
+| `fuse-linear` | `true` | Toggles the folding of Add/Sub/Mul into convolutions. |
+| `fuse-padding` | `true` | Toggles the absorption of explicit Pad ops. |
+| `fuse-transpose` | `true` | Toggles weight-based transpose folding. |
+| `fuse-activations` | `true` | Toggles ReLU/Clamp fusion. |
+| `fuse-fanout` | `true` | Toggles cloning for multi-user nodes. |
+| `fold-algebraic` | `true` | Toggles pure math identities (x+0, etc). |
 
 ## Build and Usage
+
 ```bash
 mkdir build && cd build
 cmake .. -GNinja

@@ -4,7 +4,7 @@
     "metadata": {
         "colab": {
             "provenance": [],
-            "authorship_tag": "ABX9TyM1LXZsfqPSePYZBwu7cVnW"
+            "authorship_tag": "ABX9TyPCXxJw9JcRILrsHjOm++os"
         },
         "kernelspec": {
             "name": "python3",
@@ -90,10 +90,63 @@
             ],
             "metadata": {
                 "id": "qlK73wr7tOrV",
-                "cellView": "form"
+                "cellView": "form",
+                "colab": {
+                    "base_uri": "https://localhost:8080/"
+                },
+                "executionInfo": {
+                    "status": "ok",
+                    "timestamp": 1766706207095,
+                    "user_tz": 480,
+                    "elapsed": 35205,
+                    "user": {
+                        "displayName": "Stefan Lafon",
+                        "userId": "17149650627927548318"
+                    }
+                },
+                "outputId": "45b4f63e-807d-4a99-9df6-66346c5763c2"
             },
-            "execution_count": null,
-            "outputs": []
+            "execution_count": 94,
+            "outputs": [
+                {
+                    "output_type": "stream",
+                    "name": "stdout",
+                    "text": [
+                        "/content\n",
+                        "Syncing files from Drive...\n",
+                        "-- The C compiler identification is Clang 18.1.8\n",
+                        "-- The CXX compiler identification is Clang 18.1.8\n",
+                        "-- Detecting C compiler ABI info\n",
+                        "-- Detecting C compiler ABI info - done\n",
+                        "-- Check for working C compiler: /usr/bin/clang-18 - skipped\n",
+                        "-- Detecting C compile features\n",
+                        "-- Detecting C compile features - done\n",
+                        "-- Detecting CXX compiler ABI info\n",
+                        "-- Detecting CXX compiler ABI info - done\n",
+                        "-- Check for working CXX compiler: /usr/bin/clang++-18 - skipped\n",
+                        "-- Detecting CXX compile features\n",
+                        "-- Detecting CXX compile features - done\n",
+                        "-- Performing Test HAVE_FFI_CALL\n",
+                        "-- Performing Test HAVE_FFI_CALL - Success\n",
+                        "-- Found FFI: /usr/lib/x86_64-linux-gnu/libffi.so\n",
+                        "-- Could NOT find LibEdit (missing: LibEdit_INCLUDE_DIRS LibEdit_LIBRARIES) \n",
+                        "-- Performing Test Terminfo_LINKABLE\n",
+                        "-- Performing Test Terminfo_LINKABLE - Success\n",
+                        "-- Found Terminfo: /usr/lib/x86_64-linux-gnu/libtinfo.so\n",
+                        "-- Found ZLIB: /usr/lib/x86_64-linux-gnu/libz.so (found version \"1.2.11\")\n",
+                        "-- Found zstd: /usr/lib/x86_64-linux-gnu/libzstd.so\n",
+                        "-- Found LibXml2: /usr/lib/x86_64-linux-gnu/libxml2.so (found version \"2.9.13\")\n",
+                        "-- Found CURL: /usr/lib/x86_64-linux-gnu/libcurl.so (found version \"7.81.0\")\n",
+                        "-- Could NOT find LibEdit (missing: LibEdit_INCLUDE_DIRS LibEdit_LIBRARIES) \n",
+                        "-- Using MLIRConfig.cmake in: /usr/lib/llvm-18/lib/cmake/mlir\n",
+                        "-- Using LLVMConfig.cmake in: /usr/lib/llvm-18/lib/cmake/llvm\n",
+                        "-- Configuring done (1.3s)\n",
+                        "-- Generating done (0.0s)\n",
+                        "-- Build files have been written to: /content/tensormorph_local/build\n",
+                        "[6/6] Linking CXX executable tensormorph-opt\u001b[K\n"
+                    ]
+                }
+            ]
         },
         {
             "cell_type": "code",
@@ -123,10 +176,33 @@
                 "}"
             ],
             "metadata": {
-                "id": "JIRbH7HKSHEz"
+                "id": "JIRbH7HKSHEz",
+                "cellView": "form",
+                "colab": {
+                    "base_uri": "https://localhost:8080/"
+                },
+                "executionInfo": {
+                    "status": "ok",
+                    "timestamp": 1766706217079,
+                    "user_tz": 480,
+                    "elapsed": 27,
+                    "user": {
+                        "displayName": "Stefan Lafon",
+                        "userId": "17149650627927548318"
+                    }
+                },
+                "outputId": "e32dd3e7-b5cc-4911-c2bb-2952ae4fcbb0"
             },
-            "execution_count": null,
-            "outputs": []
+            "execution_count": 96,
+            "outputs": [
+                {
+                    "output_type": "stream",
+                    "name": "stdout",
+                    "text": [
+                        "Writing /content/tensormorph_local/test.mlir\n"
+                    ]
+                }
+            ]
         },
         {
             "cell_type": "code",
@@ -139,10 +215,40 @@
             ],
             "metadata": {
                 "id": "TVD4Y9TzSVVg",
-                "cellView": "form"
+                "cellView": "form",
+                "colab": {
+                    "base_uri": "https://localhost:8080/"
+                },
+                "executionInfo": {
+                    "status": "ok",
+                    "timestamp": 1766706220330,
+                    "user_tz": 480,
+                    "elapsed": 140,
+                    "user": {
+                        "displayName": "Stefan Lafon",
+                        "userId": "17149650627927548318"
+                    }
+                },
+                "outputId": "4a0e0d51-e662-4d82-ddc5-febff284b856"
             },
-            "execution_count": null,
-            "outputs": []
+            "execution_count": 97,
+            "outputs": [
+                {
+                    "output_type": "stream",
+                    "name": "stdout",
+                    "text": [
+                        "module {\n",
+                        "  func.func @main(%arg0: tensor<1x1024x1024x1xf32>) -> tensor<1x1024x1024x1xf32> {\n",
+                        "    %0 = \"tosa.const\"() <{value = dense<2.200000e+00> : tensor<1x1x1x1xf32>}> : () -> tensor<1x1x1x1xf32>\n",
+                        "    %1 = \"tosa.const\"() <{value = dense<0.700000048> : tensor<1xf32>}> : () -> tensor<1xf32>\n",
+                        "    %2 = tosa.conv2d %arg0, %0, %1 {dilation = array<i64: 1, 1>, pad = array<i64: 0, 0, 0, 0>, stride = array<i64: 1, 1>} : (tensor<1x1024x1024x1xf32>, tensor<1x1x1x1xf32>, tensor<1xf32>) -> tensor<1x1024x1024x1xf32>\n",
+                        "    return %2 : tensor<1x1024x1024x1xf32>\n",
+                        "  }\n",
+                        "}\n",
+                        "\n"
+                    ]
+                }
+            ]
         },
         {
             "cell_type": "code",
@@ -179,10 +285,32 @@
             ],
             "metadata": {
                 "id": "eZkQ9BTNKA-0",
-                "cellView": "form"
+                "cellView": "form",
+                "colab": {
+                    "base_uri": "https://localhost:8080/"
+                },
+                "executionInfo": {
+                    "status": "ok",
+                    "timestamp": 1766706222275,
+                    "user_tz": 480,
+                    "elapsed": 114,
+                    "user": {
+                        "displayName": "Stefan Lafon",
+                        "userId": "17149650627927548318"
+                    }
+                },
+                "outputId": "5ca292a2-e8b2-4a61-9bba-2dac850ca1f5"
             },
-            "execution_count": null,
-            "outputs": []
+            "execution_count": 98,
+            "outputs": [
+                {
+                    "output_type": "stream",
+                    "name": "stdout",
+                    "text": [
+                        "Lowering utility script updated with explicit pass nesting.\n"
+                    ]
+                }
+            ]
         },
         {
             "cell_type": "code",
@@ -211,10 +339,32 @@
             ],
             "metadata": {
                 "id": "5YpbvkGQKDQq",
-                "cellView": "form"
+                "cellView": "form",
+                "colab": {
+                    "base_uri": "https://localhost:8080/"
+                },
+                "executionInfo": {
+                    "status": "ok",
+                    "timestamp": 1766706224079,
+                    "user_tz": 480,
+                    "elapsed": 38,
+                    "user": {
+                        "displayName": "Stefan Lafon",
+                        "userId": "17149650627927548318"
+                    }
+                },
+                "outputId": "0ee27dc7-d447-40e2-84f3-e8269722a023"
             },
-            "execution_count": null,
-            "outputs": []
+            "execution_count": 99,
+            "outputs": [
+                {
+                    "output_type": "stream",
+                    "name": "stdout",
+                    "text": [
+                        "Benchmark wrapper updated for 1024x1024 memory-bound stress test.\n"
+                    ]
+                }
+            ]
         },
         {
             "cell_type": "code",
@@ -277,10 +427,37 @@
             ],
             "metadata": {
                 "id": "RYiSgdBzKE4K",
-                "cellView": "form"
+                "cellView": "form",
+                "colab": {
+                    "base_uri": "https://localhost:8080/"
+                },
+                "executionInfo": {
+                    "status": "ok",
+                    "timestamp": 1766706252665,
+                    "user_tz": 480,
+                    "elapsed": 5369,
+                    "user": {
+                        "displayName": "Stefan Lafon",
+                        "userId": "17149650627927548318"
+                    }
+                },
+                "outputId": "f19be97f-b7d8-4d3e-fa5b-cb8e5d2b5a27"
             },
-            "execution_count": null,
-            "outputs": []
+            "execution_count": 103,
+            "outputs": [
+                {
+                    "output_type": "stream",
+                    "name": "stdout",
+                    "text": [
+                        "Executing: Baseline (6 Pointwise Ops)\n",
+                        "Average: 18.2976 ms (+/- 1.0177)\n",
+                        "Executing: Fused (1 Optimized Op)\n",
+                        "Average: 28.5471 ms (+/- 17.8895)\n",
+                        "\n",
+                        "Resulting Speedup: 0.64x\n"
+                    ]
+                }
+            ]
         },
         {
             "cell_type": "code",
@@ -325,10 +502,48 @@
             ],
             "metadata": {
                 "id": "WX_gAnZljSBO",
-                "cellView": "form"
+                "cellView": "form",
+                "colab": {
+                    "base_uri": "https://localhost:8080/"
+                },
+                "executionInfo": {
+                    "status": "ok",
+                    "timestamp": 1766706253195,
+                    "user_tz": 480,
+                    "elapsed": 524,
+                    "user": {
+                        "displayName": "Stefan Lafon",
+                        "userId": "17149650627927548318"
+                    }
+                },
+                "outputId": "19b3a6e0-3916-4647-8df3-4c41c1494736"
             },
-            "execution_count": null,
-            "outputs": []
+            "execution_count": 104,
+            "outputs": [
+                {
+                    "output_type": "stream",
+                    "name": "stdout",
+                    "text": [
+                        "Tests synced from Drive.\n",
+                        "\n",
+                        "[PASS] conv_add_clamp.mlir\n",
+                        "[PASS] conv_affine_fusion.mlir\n",
+                        "[PASS] conv_mul_fusion.mlir\n",
+                        "[PASS] conv_sub_fusion.mlir\n",
+                        "[PASS] fanout_cloning.mlir\n",
+                        "[PASS] identity_add.mlir\n",
+                        "[PASS] identity_mul.mlir\n",
+                        "[PASS] identity_sub.mlir\n",
+                        "[PASS] mega_fusion.mlir\n",
+                        "[PASS] pad_elimination.mlir\n",
+                        "[PASS] pointwise_add_chain.mlir\n",
+                        "[PASS] pointwise_mul_chain.mlir\n",
+                        "[PASS] transpose_fold.mlir\n",
+                        "\n",
+                        "Summary: 13/13 tests passed.\n"
+                    ]
+                }
+            ]
         },
         {
             "cell_type": "code",
@@ -339,52 +554,90 @@
                 "\n",
                 "LOCAL_FOLDER = \"/content/tensormorph_local\"\n",
                 "OPT_TOOL = f\"{LOCAL_FOLDER}/build/tensormorph-opt\"\n",
-                "# We use the transpose folding test as our verification target\n",
-                "TEST_FILE = f\"{LOCAL_FOLDER}/tests/transpose_fold.mlir\"\n",
                 "\n",
-                "def run_opt(flags):\n",
-                "    cmd = f\"{OPT_TOOL} {flags} {TEST_FILE}\"\n",
+                "def run_opt(flags, test_file):\n",
+                "    cmd = f\"{OPT_TOOL} {flags} {test_file}\"\n",
                 "    process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)\n",
                 "    stdout, stderr = process.communicate()\n",
                 "    return stdout.decode()\n",
                 "\n",
-                "print(\"--- Case 1: Transpose Folding ON (Default) ---\")\n",
-                "output_on = run_opt(\"--tosa-opt\")\n",
-                "if \"tosa.transpose\" not in output_on and \"tosa.conv2d\" in output_on:\n",
-                "    print(\"[SUCCESS] Transpose was folded into weights by default.\")\n",
-                "else:\n",
-                "    print(\"[FAILURE] Transpose folding failed or operation missing.\")\n",
+                "print(\"--- Case 1: Transpose Folding Toggle ---\")\n",
+                "TRANSPOSE_TEST = f\"{LOCAL_FOLDER}/tests/transpose_fold.mlir\"\n",
+                "out_t_on = run_opt(\"--tosa-opt\", TRANSPOSE_TEST)\n",
+                "out_t_off = run_opt('--tosa-opt=\"fuse-transpose=false\"', TRANSPOSE_TEST)\n",
                 "\n",
-                "print(\"\\n--- Case 2: Transpose Folding OFF (--tosa-opt=\\\"fuse-transpose=false\\\") ---\")\n",
-                "# We use double quotes around the pass options to handle shell escaping\n",
-                "output_off = run_opt('--tosa-opt=\"fuse-transpose=false\"')\n",
-                "if \"tosa.transpose\" in output_off:\n",
-                "    print(\"[SUCCESS] Transpose remains a separate operation. Toggle works!\")\n",
+                "if \"tosa.transpose\" not in out_t_on and \"tosa.transpose\" in out_t_off:\n",
+                "    print(\"[SUCCESS] Transpose toggle is operational.\")\n",
                 "else:\n",
-                "    print(\"[FAILURE] Optimization was still applied despite the false flag.\")\n",
+                "    print(\"[FAILURE] Transpose toggle failed.\")\n",
                 "\n",
-                "print(\"\\n--- Case 3: Fan-out Verification (Cloning Check) ---\")\n",
+                "print(\"\\n--- Case 2: Padding Elimination Toggle ---\")\n",
+                "PAD_TEST = f\"{LOCAL_FOLDER}/tests/pad_elimination.mlir\"\n",
+                "out_p_on = run_opt(\"--tosa-opt\", PAD_TEST)\n",
+                "out_p_off = run_opt('--tosa-opt=\"fuse-padding=false\"', PAD_TEST)\n",
+                "\n",
+                "if \"tosa.pad\" not in out_p_on and \"tosa.pad\" in out_p_off:\n",
+                "    print(\"[SUCCESS] Padding toggle is operational.\")\n",
+                "else:\n",
+                "    print(\"[FAILURE] Padding toggle failed.\")\n",
+                "\n",
+                "print(\"\\n--- Case 3: Linear Math 'Eating Machine' Toggle ---\")\n",
+                "LINEAR_TEST = f\"{LOCAL_FOLDER}/tests/conv_add_clamp.mlir\"\n",
+                "out_l_on = run_opt(\"--tosa-opt\", LINEAR_TEST)\n",
+                "out_l_off = run_opt('--tosa-opt=\"fuse-linear=false\"', LINEAR_TEST)\n",
+                "\n",
+                "if \"tosa.add\" not in out_l_on and \"tosa.add\" in out_l_off:\n",
+                "    print(\"[SUCCESS] Linear Math (fuse-linear) toggle is operational.\")\n",
+                "else:\n",
+                "    print(\"[FAILURE] Linear math toggle failed.\")\n",
+                "\n",
+                "print(\"\\n--- Case 4: Fan-out Verification ---\")\n",
                 "FANOUT_TEST = f\"{LOCAL_FOLDER}/tests/fanout_cloning.mlir\"\n",
-                "def run_fanout(flags):\n",
-                "    cmd = f\"{OPT_TOOL} {flags} {FANOUT_TEST}\"\n",
-                "    process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)\n",
-                "    stdout, stderr = process.communicate()\n",
-                "    return stdout.decode()\n",
-                "\n",
-                "# Check that we have TWO convs when cloning is enabled\n",
-                "output_fanout = run_fanout(\"--tosa-opt\")\n",
-                "conv_count = output_fanout.count(\"tosa.conv2d\")\n",
+                "out_fanout = run_opt(\"--tosa-opt\", FANOUT_TEST)\n",
+                "conv_count = out_fanout.count(\"tosa.conv2d\")\n",
                 "if conv_count == 2:\n",
-                "    print(f\"[SUCCESS] Fan-out cloning created {conv_count} convolutions.\")\n",
+                "    print(f\"[SUCCESS] Fan-out cloning verified ({conv_count} convs generated).\")\n",
                 "else:\n",
-                "    print(f\"[FAILURE] Expected 2 convolutions, found {conv_count}.\")"
+                "    print(f\"[FAILURE] Expected 2 convs, found {conv_count}.\")"
             ],
             "metadata": {
                 "cellView": "form",
-                "id": "wx_hPH4kmgSR"
+                "id": "wx_hPH4kmgSR",
+                "colab": {
+                    "base_uri": "https://localhost:8080/"
+                },
+                "executionInfo": {
+                    "status": "ok",
+                    "timestamp": 1766706253488,
+                    "user_tz": 480,
+                    "elapsed": 291,
+                    "user": {
+                        "displayName": "Stefan Lafon",
+                        "userId": "17149650627927548318"
+                    }
+                },
+                "outputId": "b94336f2-6d51-4e4c-d73b-24b737cd14b3"
             },
-            "execution_count": null,
-            "outputs": []
+            "execution_count": 105,
+            "outputs": [
+                {
+                    "output_type": "stream",
+                    "name": "stdout",
+                    "text": [
+                        "--- Case 1: Transpose Folding Toggle ---\n",
+                        "[SUCCESS] Transpose toggle is operational.\n",
+                        "\n",
+                        "--- Case 2: Padding Elimination Toggle ---\n",
+                        "[SUCCESS] Padding toggle is operational.\n",
+                        "\n",
+                        "--- Case 3: Linear Math 'Eating Machine' Toggle ---\n",
+                        "[SUCCESS] Linear Math (fuse-linear) toggle is operational.\n",
+                        "\n",
+                        "--- Case 4: Fan-out Verification ---\n",
+                        "[SUCCESS] Fan-out cloning verified (2 convs generated).\n"
+                    ]
+                }
+            ]
         }
     ]
 }

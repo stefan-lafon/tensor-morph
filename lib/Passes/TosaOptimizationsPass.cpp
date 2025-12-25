@@ -12,15 +12,15 @@ struct TosaOptimizationsPass :
   
   TosaOptimizationsPass() = default;
   
-  // Custom copy constructor for MLIR's cloning mechanism
   TosaOptimizationsPass(const TosaOptimizationsPass &other) : PassWrapper(other) {
     this->fuseFanout = other.fuseFanout;
     this->fuseActivations = other.fuseActivations;
     this->fuseTranspose = other.fuseTranspose;
+    this->fusePadding = other.fusePadding;
+    this->fuseLinear = other.fuseLinear;
     this->foldAlgebraic = other.foldAlgebraic;
   }
 
-  // Command-line options
   Option<bool> fuseFanout{*this, "fuse-fanout", 
     llvm::cl::desc("Allow cloning operations to enable fusion across multiple users."), 
     llvm::cl::init(true)};
@@ -33,18 +33,26 @@ struct TosaOptimizationsPass :
     llvm::cl::desc("Enable/Disable folding of Transpose into Conv weights."), 
     llvm::cl::init(true)};
 
+  Option<bool> fusePadding{*this, "fuse-padding", 
+    llvm::cl::desc("Enable/Disable elimination of explicit Pad ops into Conv."), 
+    llvm::cl::init(true)};
+
+  Option<bool> fuseLinear{*this, "fuse-linear", 
+    llvm::cl::desc("Enable/Disable folding of Add/Sub/Mul into Conv weights/bias."), 
+    llvm::cl::init(true)};
+
   Option<bool> foldAlgebraic{*this, "fold-algebraic", 
-    llvm::cl::desc("Enable/Disable pure algebraic identities (Add+Add, etc)."), 
+    llvm::cl::desc("Enable/Disable pure algebraic identities (Add+Add, x+0, etc)."), 
     llvm::cl::init(true)};
 
   void runOnOperation() override {
     MLIRContext *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     
-    // Register structural patterns (Conv fusions, Transpose folding)
-    tensormorph::populateTosaStructuralFusionPatterns(patterns, fuseFanout, fuseActivations, fuseTranspose);
+    // Pass the new fuseLinear boolean to the structural registry
+    tensormorph::populateTosaStructuralFusionPatterns(
+        patterns, fuseFanout, fuseActivations, fuseTranspose, fusePadding, fuseLinear);
     
-    // Register algebraic patterns (Identities, Chains)
     if (foldAlgebraic) {
       tensormorph::populateTosaAlgebraicFoldingPatterns(patterns);
     }
