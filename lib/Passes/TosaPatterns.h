@@ -7,14 +7,15 @@ namespace mlir {
 namespace tensormorph {
 
 /**
- * Registers patterns that anchor on tosa.conv2d to fold following
- * elementwise operations (Add, Sub, Mul, Clamp) into weights/attributes.
+ * Registers patterns that anchor on tosa.conv2d.
+ * @param fuseFanout: If true, allows cloning Conv ops to enable fusion with 
+ * multiple downstream users.
+ * @param fuseActivations: If true, allows folding Clamp/ReLU into Conv attributes.
  */
-void populateTosaStructuralFusionPatterns(RewritePatternSet &patterns);
+void populateTosaStructuralFusionPatterns(RewritePatternSet &patterns, bool fuseFanout, bool fuseActivations);
 
 /**
- * Registers patterns for general algebraic simplifications that do 
- * not require a convolution anchor (e.g., Add + Add folding).
+ * Registers patterns for general algebraic simplifications.
  */
 void populateTosaAlgebraicFoldingPatterns(RewritePatternSet &patterns);
 

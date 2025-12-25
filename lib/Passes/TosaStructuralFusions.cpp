@@ -7,10 +7,16 @@ using namespace mlir;
 namespace {
 
 struct FoldLinearMathIntoConv : public OpRewritePattern<tosa::Conv2DOp> {
-  using OpRewritePattern<tosa::Conv2DOp>::OpRewritePattern;
+  bool allowFanout;
+  FoldLinearMathIntoConv(MLIRContext *context, bool fuseFanout) 
+      : OpRewritePattern<tosa::Conv2DOp>(context), allowFanout(fuseFanout) {}
 
   LogicalResult matchAndRewrite(tosa::Conv2DOp convOp, 
                                 PatternRewriter &rewriter) const override {
+    // Current "Polite" logic: respects the fanout flag
+    if (!allowFanout && !convOp->getResult(0).hasOneUse()) 
+        return failure();
+
     auto weightConst = convOp.getWeight().getDefiningOp<tosa::ConstOp>();
     auto biasConst = convOp.getBias().getDefiningOp<tosa::ConstOp>();
     if (!weightConst || !biasConst) return failure();
@@ -50,7 +56,7 @@ struct FoldLinearMathIntoConv : public OpRewritePattern<tosa::Conv2DOp> {
         lastOp = nextOp; changed = true;
       } 
       else if (auto subOp = llvm::dyn_cast<tosa::SubOp>(nextOp)) {
-        auto subConst = subOp.getInput2().getDefiningOp<tosa::ConstOp>();
+        auto subConst = subOp.getOperand(1).getDefiningOp<tosa::ConstOp>();
         if (!subConst) break;
         auto sValues = subConst.getValue().cast<DenseElementsAttr>().getValues<float>();
         for (int oc = 0; oc < numOutChannels; ++oc) currentBias[oc] -= sValues[oc];
@@ -98,6 +104,9 @@ struct FuseClampIntoConv : public OpRewritePattern<tosa::ClampOp> {
 
 } // namespace
 
-void mlir::tensormorph::populateTosaStructuralFusionPatterns(RewritePatternSet &patterns) {
-  patterns.add<FoldLinearMathIntoConv, FuseClampIntoConv>(patterns.getContext());
+void mlir::tensormorph::populateTosaStructuralFusionPatterns(RewritePatternSet &patterns, bool fuseFanout, bool fuseActivations) {
+  patterns.add<FoldLinearMathIntoConv>(patterns.getContext(), fuseFanout);
+  if (fuseActivations) {
+    patterns.add<FuseClampIntoConv>(patterns.getContext());
+  }
 }
