@@ -96,17 +96,17 @@
                 },
                 "executionInfo": {
                     "status": "ok",
-                    "timestamp": 1766706207095,
+                    "timestamp": 1766706916519,
                     "user_tz": 480,
-                    "elapsed": 35205,
+                    "elapsed": 37996,
                     "user": {
                         "displayName": "Stefan Lafon",
                         "userId": "17149650627927548318"
                     }
                 },
-                "outputId": "45b4f63e-807d-4a99-9df6-66346c5763c2"
+                "outputId": "29bf7318-2ead-4abd-ca1a-634e3c80d8a3"
             },
-            "execution_count": 94,
+            "execution_count": 111,
             "outputs": [
                 {
                     "output_type": "stream",
@@ -140,7 +140,7 @@
                         "-- Could NOT find LibEdit (missing: LibEdit_INCLUDE_DIRS LibEdit_LIBRARIES) \n",
                         "-- Using MLIRConfig.cmake in: /usr/lib/llvm-18/lib/cmake/mlir\n",
                         "-- Using LLVMConfig.cmake in: /usr/lib/llvm-18/lib/cmake/llvm\n",
-                        "-- Configuring done (1.3s)\n",
+                        "-- Configuring done (1.2s)\n",
                         "-- Generating done (0.0s)\n",
                         "-- Build files have been written to: /content/tensormorph_local/build\n",
                         "[6/6] Linking CXX executable tensormorph-opt\u001b[K\n"
@@ -183,17 +183,17 @@
                 },
                 "executionInfo": {
                     "status": "ok",
-                    "timestamp": 1766706217079,
+                    "timestamp": 1766706946544,
                     "user_tz": 480,
-                    "elapsed": 27,
+                    "elapsed": 68,
                     "user": {
                         "displayName": "Stefan Lafon",
                         "userId": "17149650627927548318"
                     }
                 },
-                "outputId": "e32dd3e7-b5cc-4911-c2bb-2952ae4fcbb0"
+                "outputId": "d4a5ae60-d090-4335-9555-a8c8ca32574c"
             },
-            "execution_count": 96,
+            "execution_count": 114,
             "outputs": [
                 {
                     "output_type": "stream",
@@ -221,17 +221,17 @@
                 },
                 "executionInfo": {
                     "status": "ok",
-                    "timestamp": 1766706220330,
+                    "timestamp": 1766706947777,
                     "user_tz": 480,
-                    "elapsed": 140,
+                    "elapsed": 123,
                     "user": {
                         "displayName": "Stefan Lafon",
                         "userId": "17149650627927548318"
                     }
                 },
-                "outputId": "4a0e0d51-e662-4d82-ddc5-febff284b856"
+                "outputId": "032c5d6d-8a7e-4663-894a-17dbb41fd78a"
             },
-            "execution_count": 97,
+            "execution_count": 115,
             "outputs": [
                 {
                     "output_type": "stream",
@@ -291,17 +291,17 @@
                 },
                 "executionInfo": {
                     "status": "ok",
-                    "timestamp": 1766706222275,
+                    "timestamp": 1766706949207,
                     "user_tz": 480,
-                    "elapsed": 114,
+                    "elapsed": 117,
                     "user": {
                         "displayName": "Stefan Lafon",
                         "userId": "17149650627927548318"
                     }
                 },
-                "outputId": "5ca292a2-e8b2-4a61-9bba-2dac850ca1f5"
+                "outputId": "8e9fbc56-f132-4b36-86ed-145cac507fc1"
             },
-            "execution_count": 98,
+            "execution_count": 116,
             "outputs": [
                 {
                     "output_type": "stream",
@@ -345,17 +345,17 @@
                 },
                 "executionInfo": {
                     "status": "ok",
-                    "timestamp": 1766706224079,
+                    "timestamp": 1766706950341,
                     "user_tz": 480,
-                    "elapsed": 38,
+                    "elapsed": 30,
                     "user": {
                         "displayName": "Stefan Lafon",
                         "userId": "17149650627927548318"
                     }
                 },
-                "outputId": "0ee27dc7-d447-40e2-84f3-e8269722a023"
+                "outputId": "ca480708-a7e3-49b5-ca67-1867211012ed"
             },
-            "execution_count": 99,
+            "execution_count": 117,
             "outputs": [
                 {
                     "output_type": "stream",
@@ -443,7 +443,7 @@
                 },
                 "outputId": "f19be97f-b7d8-4d3e-fa5b-cb8e5d2b5a27"
             },
-            "execution_count": 103,
+            "execution_count": null,
             "outputs": [
                 {
                     "output_type": "stream",
@@ -508,17 +508,17 @@
                 },
                 "executionInfo": {
                     "status": "ok",
-                    "timestamp": 1766706253195,
+                    "timestamp": 1766706923659,
                     "user_tz": 480,
-                    "elapsed": 524,
+                    "elapsed": 482,
                     "user": {
                         "displayName": "Stefan Lafon",
                         "userId": "17149650627927548318"
                     }
                 },
-                "outputId": "19b3a6e0-3916-4647-8df3-4c41c1494736"
+                "outputId": "3b9e6c3b-612e-4d68-b382-70d5fc95175a"
             },
-            "execution_count": 104,
+            "execution_count": 112,
             "outputs": [
                 {
                     "output_type": "stream",
@@ -526,6 +526,7 @@
                     "text": [
                         "Tests synced from Drive.\n",
                         "\n",
+                        "[PASS] complex_mobile_block.mlir\n",
                         "[PASS] conv_add_clamp.mlir\n",
                         "[PASS] conv_affine_fusion.mlir\n",
                         "[PASS] conv_mul_fusion.mlir\n",
@@ -540,7 +541,7 @@
                         "[PASS] pointwise_mul_chain.mlir\n",
                         "[PASS] transpose_fold.mlir\n",
                         "\n",
-                        "Summary: 13/13 tests passed.\n"
+                        "Summary: 14/14 tests passed.\n"
                     ]
                 }
             ]
@@ -608,17 +609,17 @@
                 },
                 "executionInfo": {
                     "status": "ok",
-                    "timestamp": 1766706253488,
+                    "timestamp": 1766706939638,
                     "user_tz": 480,
-                    "elapsed": 291,
+                    "elapsed": 187,
                     "user": {
                         "displayName": "Stefan Lafon",
                         "userId": "17149650627927548318"
                     }
                 },
-                "outputId": "b94336f2-6d51-4e4c-d73b-24b737cd14b3"
+                "outputId": "d4fec8d5-480a-46f5-9c8d-f2463957e910"
             },
-            "execution_count": 105,
+            "execution_count": 113,
             "outputs": [
                 {
                     "output_type": "stream",
