@@ -67,9 +67,7 @@ struct PadElimination : public OpRewritePattern<tosa::Conv2DOp> {
             convOp.getStrideAttr(), convOp.getDilationAttr()
         );
         
-        // CRITICAL: Preserve fused activation attributes
         newConv->setAttrs(convOp->getAttrs());
-        // But overwrite the pad attribute with the new merged values
         newConv.setPadAttr(rewriter.getDenseI64ArrayAttr(newPadValues));
 
         rewriter.replaceOp(convOp, newConv.getResult());
@@ -100,7 +98,6 @@ struct TransposeFolding : public OpRewritePattern<tosa::Conv2DOp> {
             convOp.getBias(), convOp.getPadAttr(), convOp.getStrideAttr(), convOp.getDilationAttr()
         );
         
-        // CRITICAL: Preserve fused activation attributes
         newConv->setAttrs(convOp->getAttrs());
 
         rewriter.replaceOp(convOp, newConv.getResult());
@@ -108,7 +105,7 @@ struct TransposeFolding : public OpRewritePattern<tosa::Conv2DOp> {
     }
 };
 
-// 3. Linear Math Folding (The Eating Machine)
+// 3. Linear Math Folding (Standard Conv2D)
 struct FoldLinearMathIntoConv : public OpRewritePattern<tosa::Conv2DOp> {
   bool allowFanout;
   FoldLinearMathIntoConv(MLIRContext *context, bool fuseFanout) 
@@ -122,86 +119,66 @@ struct FoldLinearMathIntoConv : public OpRewritePattern<tosa::Conv2DOp> {
     auto weightAttr = weightConst.getValue().cast<DenseElementsAttr>();
     auto biasAttr = biasConst.getValue().cast<DenseElementsAttr>();
     int numOutChannels = biasAttr.getNumElements();
-    int weightsPerChannel = weightAttr.getNumElements() / numOutChannels;
 
-    for (auto &use : convOp->getResult(0).getUses()) {
+    for (auto &use : llvm::make_early_inc_range(convOp->getResult(0).getUses())) {
       Operation *nextOp = use.getOwner();
       bool isSingleUse = convOp->getResult(0).hasOneUse();
       if (!isSingleUse && !allowFanout) continue;
 
-      // --- Handle Add ---
       if (auto addOp = llvm::dyn_cast<tosa::AddOp>(nextOp)) {
-        auto shiftConst = addOp.getInput2().getDefiningOp<tosa::ConstOp>();
-        if (!shiftConst) continue;
-        auto shValues = shiftConst.getValue().cast<DenseElementsAttr>().getValues<float>();
-        SmallVector<float> newBias(biasAttr.getValues<float>());
-        for (int i = 0; i < numOutChannels; ++i) newBias[i] += shValues[i];
-        auto newBAttr = DenseElementsAttr::get(biasAttr.getType(), llvm::ArrayRef<float>(newBias));
-        auto newBConst = rewriter.create<tosa::ConstOp>(addOp.getLoc(), biasAttr.getType(), newBAttr);
+        auto constOp = addOp.getInput2().getDefiningOp<tosa::ConstOp>();
+        if (!constOp) continue;
+        auto vals = constOp.getValue().cast<DenseElementsAttr>().getValues<float>();
+        SmallVector<float> nB(biasAttr.getValues<float>());
+        for (int i = 0; i < numOutChannels; ++i) nB[i] += vals[i];
+        auto nBAttr = DenseElementsAttr::get(biasAttr.getType(), llvm::ArrayRef<float>(nB));
+        auto nBConst = rewriter.create<tosa::ConstOp>(addOp.getLoc(), biasAttr.getType(), nBAttr);
         
-        if (isSingleUse) {
-          rewriter.modifyOpInPlace(convOp, [&]() { convOp.setOperand(2, newBConst); });
-          rewriter.replaceOp(addOp, convOp.getResult());
-        } else {
-          // CLONE ensures all attributes (activation fusion) are kept
-          auto cloned = cast<tosa::Conv2DOp>(rewriter.clone(*convOp.getOperation()));
-          cloned.setOperand(2, newBConst);
-          rewriter.replaceOp(addOp, cloned.getResult());
-        }
+        auto cloned = cast<tosa::Conv2DOp>(rewriter.clone(*convOp.getOperation()));
+        cloned.setOperand(2, nBConst);
+        rewriter.replaceOp(addOp, cloned.getResult());
+        if (isSingleUse) rewriter.eraseOp(convOp);
         return success();
       }
 
-      // --- Handle Mul ---
-      if (auto mulOp = llvm::dyn_cast<tosa::MulOp>(nextOp)) {
-        auto scaleConst = mulOp.getInput2().getDefiningOp<tosa::ConstOp>();
-        if (!scaleConst) continue;
-        auto sValues = scaleConst.getValue().cast<DenseElementsAttr>().getValues<float>();
-        SmallVector<float> newWeights(weightAttr.getValues<float>());
-        SmallVector<float> newBias(biasAttr.getValues<float>());
-        for (int oc = 0; oc < numOutChannels; ++oc) {
-          float s = sValues[oc];
-          newBias[oc] *= s;
-          for (int i = 0; i < weightsPerChannel; ++i)
-            newWeights[oc * weightsPerChannel + i] *= s;
-        }
-        auto newWAttr = DenseElementsAttr::get(weightAttr.getType(), llvm::ArrayRef<float>(newWeights));
-        auto newBAttr = DenseElementsAttr::get(biasAttr.getType(), llvm::ArrayRef<float>(newBias));
-        auto newWConst = rewriter.create<tosa::ConstOp>(mulOp.getLoc(), weightAttr.getType(), newWAttr);
-        auto newBConst = rewriter.create<tosa::ConstOp>(mulOp.getLoc(), biasAttr.getType(), newBAttr);
-        
-        if (isSingleUse) {
-          rewriter.modifyOpInPlace(convOp, [&]() { 
-            convOp.setOperand(1, newWConst); 
-            convOp.setOperand(2, newBConst); 
-          });
-          rewriter.replaceOp(mulOp, convOp.getResult());
-        } else {
-          auto cloned = cast<tosa::Conv2DOp>(rewriter.clone(*convOp.getOperation()));
-          cloned.setOperand(1, newWConst);
-          cloned.setOperand(2, newBConst);
-          rewriter.replaceOp(mulOp, cloned.getResult());
-        }
-        return success();
-      }
-
-      // --- Handle Sub ---
       if (auto subOp = llvm::dyn_cast<tosa::SubOp>(nextOp)) {
-        auto subConst = subOp.getInput2().getDefiningOp<tosa::ConstOp>();
-        if (!subConst) continue;
-        auto sValues = subConst.getValue().cast<DenseElementsAttr>().getValues<float>();
-        SmallVector<float> newBias(biasAttr.getValues<float>());
-        for (int i = 0; i < numOutChannels; ++i) newBias[i] -= sValues[i];
-        auto newBAttr = DenseElementsAttr::get(biasAttr.getType(), llvm::ArrayRef<float>(newBias));
-        auto newBConst = rewriter.create<tosa::ConstOp>(subOp.getLoc(), biasAttr.getType(), newBAttr);
+        auto constOp = subOp.getInput2().getDefiningOp<tosa::ConstOp>();
+        if (!constOp) continue;
+        auto vals = constOp.getValue().cast<DenseElementsAttr>().getValues<float>();
+        SmallVector<float> nB(biasAttr.getValues<float>());
+        for (int i = 0; i < numOutChannels; ++i) nB[i] -= vals[i];
+        auto nBAttr = DenseElementsAttr::get(biasAttr.getType(), llvm::ArrayRef<float>(nB));
+        auto nBConst = rewriter.create<tosa::ConstOp>(subOp.getLoc(), biasAttr.getType(), nBAttr);
         
-        if (isSingleUse) {
-          rewriter.modifyOpInPlace(convOp, [&]() { convOp.setOperand(2, newBConst); });
-          rewriter.replaceOp(subOp, convOp.getResult());
-        } else {
-          auto cloned = cast<tosa::Conv2DOp>(rewriter.clone(*convOp.getOperation()));
-          cloned.setOperand(2, newBConst);
-          rewriter.replaceOp(subOp, cloned.getResult());
+        auto cloned = cast<tosa::Conv2DOp>(rewriter.clone(*convOp.getOperation()));
+        cloned.setOperand(2, nBConst);
+        rewriter.replaceOp(subOp, cloned.getResult());
+        if (isSingleUse) rewriter.eraseOp(convOp);
+        return success();
+      }
+
+      if (auto mulOp = llvm::dyn_cast<tosa::MulOp>(nextOp)) {
+        auto constOp = mulOp.getInput2().getDefiningOp<tosa::ConstOp>();
+        if (!constOp) continue;
+        auto vals = constOp.getValue().cast<DenseElementsAttr>().getValues<float>();
+        SmallVector<float> nW(weightAttr.getValues<float>());
+        SmallVector<float> nB(biasAttr.getValues<float>());
+        int wpc = weightAttr.getNumElements() / numOutChannels;
+        for (int oc = 0; oc < numOutChannels; ++oc) {
+          float s = vals[oc];
+          nB[oc] *= s;
+          for (int i = 0; i < wpc; ++i) nW[oc * wpc + i] *= s;
         }
+        auto nWAttr = DenseElementsAttr::get(weightAttr.getType(), llvm::ArrayRef<float>(nW));
+        auto nBAttr = DenseElementsAttr::get(biasAttr.getType(), llvm::ArrayRef<float>(nB));
+        auto nWConst = rewriter.create<tosa::ConstOp>(mulOp.getLoc(), weightAttr.getType(), nWAttr);
+        auto nBConst = rewriter.create<tosa::ConstOp>(mulOp.getLoc(), biasAttr.getType(), nBAttr);
+        
+        auto cloned = cast<tosa::Conv2DOp>(rewriter.clone(*convOp.getOperation()));
+        cloned.setOperand(1, nWConst);
+        cloned.setOperand(2, nBConst);
+        rewriter.replaceOp(mulOp, cloned.getResult());
+        if (isSingleUse) rewriter.eraseOp(convOp);
         return success();
       }
     }
@@ -209,22 +186,89 @@ struct FoldLinearMathIntoConv : public OpRewritePattern<tosa::Conv2DOp> {
   }
 };
 
-// 4. Activation Injection
-struct FuseClampIntoConv : public OpRewritePattern<tosa::ClampOp> {
-  using OpRewritePattern<tosa::ClampOp>::OpRewritePattern;
+// 4. Linear Math Folding (Depthwise Conv2D)
+struct FoldLinearMathIntoDepthwiseConv : public OpRewritePattern<tosa::DepthwiseConv2DOp> {
+  bool allowFanout;
+  FoldLinearMathIntoDepthwiseConv(MLIRContext *context, bool fuseFanout) 
+      : OpRewritePattern<tosa::DepthwiseConv2DOp>(context), allowFanout(fuseFanout) {}
 
-  LogicalResult matchAndRewrite(tosa::ClampOp clampOp, PatternRewriter &rewriter) const override {
-    auto convOp = clampOp.getInput().getDefiningOp<tosa::Conv2DOp>();
-    if (!convOp || !convOp->getResult(0).hasOneUse() || convOp->getAttr("fused_activation")) return failure();
+  LogicalResult matchAndRewrite(tosa::DepthwiseConv2DOp dwOp, PatternRewriter &rewriter) const override {
+    auto weightConst = dwOp.getWeight().getDefiningOp<tosa::ConstOp>();
+    auto biasConst = dwOp.getBias().getDefiningOp<tosa::ConstOp>();
+    if (!weightConst || !biasConst) return failure();
 
-    rewriter.modifyOpInPlace(convOp, [&]() {
-      convOp->setAttr("fused_activation", rewriter.getStringAttr("clamp"));
-      convOp->setAttr("clamp_min", clampOp.getMinIntAttr());
-      convOp->setAttr("clamp_max", clampOp.getMaxIntAttr());
-    });
-    rewriter.replaceOp(clampOp, convOp.getResult());
-    return success();
+    auto weightAttr = weightConst.getValue().cast<DenseElementsAttr>();
+    auto biasAttr = biasConst.getValue().cast<DenseElementsAttr>();
+    int numOutChannels = biasAttr.getNumElements();
+    auto weightShape = weightAttr.getType().cast<RankedTensorType>().getShape();
+    int kh = weightShape[0], kw = weightShape[1];
+
+    for (auto &use : llvm::make_early_inc_range(dwOp->getResult(0).getUses())) {
+      Operation *nextOp = use.getOwner();
+      bool isSingleUse = dwOp->getResult(0).hasOneUse();
+      if (!isSingleUse && !allowFanout) continue;
+
+      if (auto addOp = llvm::dyn_cast<tosa::AddOp>(nextOp)) {
+        auto constOp = addOp.getInput2().getDefiningOp<tosa::ConstOp>();
+        if (!constOp) continue;
+        auto vals = constOp.getValue().cast<DenseElementsAttr>().getValues<float>();
+        SmallVector<float> nB(biasAttr.getValues<float>());
+        for (int i = 0; i < numOutChannels; ++i) nB[i] += vals[i];
+        auto nBConst = rewriter.create<tosa::ConstOp>(addOp.getLoc(), biasAttr.getType(), DenseElementsAttr::get(biasAttr.getType(), llvm::ArrayRef<float>(nB)));
+        auto cloned = cast<tosa::DepthwiseConv2DOp>(rewriter.clone(*dwOp.getOperation()));
+        cloned.setOperand(2, nBConst);
+        rewriter.replaceOp(addOp, cloned.getResult());
+        if (isSingleUse) rewriter.eraseOp(dwOp);
+        return success();
+      }
+
+      if (auto mulOp = llvm::dyn_cast<tosa::MulOp>(nextOp)) {
+        auto constOp = mulOp.getInput2().getDefiningOp<tosa::ConstOp>();
+        if (!constOp) continue;
+        auto vals = constOp.getValue().cast<DenseElementsAttr>().getValues<float>();
+        SmallVector<float> nW(weightAttr.getValues<float>());
+        SmallVector<float> nB(biasAttr.getValues<float>());
+        for (int oc = 0; oc < numOutChannels; ++oc) {
+          float s = vals[oc];
+          nB[oc] *= s;
+          for (int h = 0; h < kh; ++h) {
+            for (int w = 0; w < kw; ++w) {
+              int idx = ((h * kw + w) * numOutChannels) + oc;
+              nW[idx] *= s;
+            }
+          }
+        }
+        auto nWConst = rewriter.create<tosa::ConstOp>(mulOp.getLoc(), weightAttr.getType(), DenseElementsAttr::get(weightAttr.getType(), llvm::ArrayRef<float>(nW)));
+        auto nBConst = rewriter.create<tosa::ConstOp>(mulOp.getLoc(), biasAttr.getType(), DenseElementsAttr::get(biasAttr.getType(), llvm::ArrayRef<float>(nB)));
+        auto cloned = cast<tosa::DepthwiseConv2DOp>(rewriter.clone(*dwOp.getOperation()));
+        cloned.setOperand(1, nWConst);
+        cloned.setOperand(2, nBConst);
+        rewriter.replaceOp(mulOp, cloned.getResult());
+        if (isSingleUse) rewriter.eraseOp(dwOp);
+        return success();
+      }
+    }
+    return failure();
   }
+};
+
+// 5. Activation Injection (Anchor-Agnostic)
+struct FuseClampIntoAnchor : public OpRewritePattern<tosa::ClampOp> {
+    using OpRewritePattern<tosa::ClampOp>::OpRewritePattern;
+
+    LogicalResult matchAndRewrite(tosa::ClampOp clampOp, PatternRewriter &rewriter) const override {
+        Operation *anchor = clampOp.getInput().getDefiningOp();
+        if (!anchor || !isa<tosa::Conv2DOp, tosa::DepthwiseConv2DOp>(anchor)) return failure();
+        if (!anchor->getResult(0).hasOneUse() || anchor->hasAttr("fused_activation")) return failure();
+
+        rewriter.modifyOpInPlace(anchor, [&]() {
+          anchor->setAttr("fused_activation", rewriter.getStringAttr("clamp"));
+          anchor->setAttr("clamp_min", clampOp.getMinIntAttr());
+          anchor->setAttr("clamp_max", clampOp.getMaxIntAttr());
+        });
+        rewriter.replaceOp(clampOp, anchor->getResult(0));
+        return success();
+    }
 };
 
 } // namespace
@@ -235,8 +279,9 @@ void mlir::tensormorph::populateTosaStructuralFusionPatterns(
   
   if (fuseLinear) {
     patterns.add<FoldLinearMathIntoConv>(patterns.getContext(), fuseFanout);
+    patterns.add<FoldLinearMathIntoDepthwiseConv>(patterns.getContext(), fuseFanout);
   }
   if (fusePadding) patterns.add<PadElimination>(patterns.getContext());
   if (fuseTranspose) patterns.add<TransposeFolding>(patterns.getContext());
-  if (fuseActivations) patterns.add<FuseClampIntoConv>(patterns.getContext());
+  if (fuseActivations) patterns.add<FuseClampIntoAnchor>(patterns.getContext());
 }
