@@ -1,19 +1,21 @@
-# Python artifacts
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
-.ipynb_checkpoints/
-
-# Virtual environments
+.env
 venv/
 env/
-.env
 
-# Data and Logs
-data/
-*.csv
-*.log
+# Notebooks
+.ipynb_checkpoints
 
-# VSCode and OS files
+# TensorMorph Artifacts
+data/*.csv
+models/*.joblib
+experimental/*.h
+
+# VSCode
 .vscode/
+
+# macOS
 .DS_Store
