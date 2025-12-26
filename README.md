@@ -1,6 +1,8 @@
 # TensorMorph
 
-TensorMorph is a high-performance MLIR-based utility for experimenting with TOSA graph optimizations. It provides a modular sandbox for folding redundant spatial, algebraic, and linear operations into convolution anchors.
+TensorMorph is a specialized MLIR-based optimizer designed to "morph" standard TOSA (Tensor Operator Set Architecture) graphs into hardware-efficient execution kernels. It provides a modular sandbox for folding redundant spatial, algebraic, and linear operations into convolution anchors.
+
+![Benchmark Results](./assets/benchmark_snapshot.png)
 
 ## Transformation Suite
 
