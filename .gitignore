@@ -1,0 +1,19 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints/
+
+# Virtual environments
+venv/
+env/
+.env
+
+# Data and Logs
+data/
+*.csv
+*.log
+
+# VSCode and OS files
+.vscode/
+.DS_Store
