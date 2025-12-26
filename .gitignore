@@ -1,21 +1,27 @@
-# Python
+# Python artifacts.
 __pycache__/
 *.py[cod]
 *$py.class
+.ipynb_checkpoints/
+
+# Environment and data.
 .env
-venv/
-env/
-
-# Notebooks
-.ipynb_checkpoints
-
-# TensorMorph Artifacts
 data/*.csv
+
+# Machine learning models.
 models/*.joblib
-experimental/*.h
 
-# VSCode
-.vscode/
+# C++ build artifacts.
+build/
+bin/
+*.o
+*.obj
+*.exe
 
-# macOS
+# Machine-generated C++ code.
+# We keep experimental/Advisor.h tracked but ignore the transpiled logic.
+experimental/codegen/
+
+# System files.
 .DS_Store
+Thumbs.db
