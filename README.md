@@ -6,14 +6,14 @@ TensorMorph is a specialized MLIR-based optimizer designed to "morph" standard T
 
 ## Transformation Suite
 
-### Structural Fusion (Anchor: tosa.conv2d)
+### Structural Fusion (Primary Anchors: tosa.conv2d, tosa.depthwise_conv2d)
 * **Linear Math Folding**: Greedily consumes `tosa.add`, `tosa.sub`, and `tosa.mul` layers following a convolution, baking their effects into weights and biases.
 * **Padding Elimination**: Absorbs explicit `tosa.pad` operations into the internal convolution padding attribute, eliminating redundant memory copies.
 * **Transpose Folding**: Bakes input spatial permutations into weight constants at compile-time, converting runtime overhead into zero-cost constant rearrangement.
 * **Activation Injection**: Fuses `tosa.clamp` (ReLU/ReLU6) operations directly into convolution attributes.
 * **Fan-out Cloning**: Automatically clones anchors when they have multiple consumers to preserve fusion potential and data locality.
 
-### Algebraic & Pointwise Folding
+### Algebraic & Pointwise Folding (Anchor-less)
 * **Pointwise Chains**: Collapses sequential operations (e.g., `(x + 5) + 10`) into a single combined operation.
 * **Arithmetic Identities**: Detects and removes redundant operations such as $x + 0$ or $x \times 1$.
 
