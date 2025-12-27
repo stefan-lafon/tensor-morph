@@ -17,10 +17,12 @@ include_directories(${PROJECT_SOURCE_DIR}/lib/Passes)
 add_definitions(${LLVM_DEFINITIONS})
 
 # Modular Optimization Library
+# We include TensorFeatures.cpp here to satisfy the linker
 add_library(TosaOptimizations SHARED
     lib/Passes/TosaOptimizationsPass.cpp
     lib/Passes/TosaStructuralFusions.cpp
     lib/Passes/TosaAlgebraicFolds.cpp
+    lib/Passes/TensorFeatures.cpp
 )
 
 target_link_libraries(TosaOptimizations
@@ -29,6 +31,7 @@ target_link_libraries(TosaOptimizations
     MLIRPass
     MLIRTransforms
     MLIRIR
+    MLIRArithDialect
 )
 
 # Main tool driver: tensormorph-opt
@@ -45,4 +48,5 @@ target_link_libraries(tensormorph-opt
     MLIRSCFTransforms
     MLIRPass
     MLIRSupport
+    MLIRParser
 )

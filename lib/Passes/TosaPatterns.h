@@ -7,19 +7,20 @@ namespace mlir {
 namespace tensormorph {
 
 /**
- * @brief Populates a RewritePatternSet with structural optimization patterns.
- * * Structural patterns target "anchor" operations (like tosa.conv2d) and attempt
- * to absorb surrounding operations into the anchor's attributes or constants.
- *
- * @param patterns The pattern set to populate.
- * @param fuseFanout If true, allows cloning operations to enable fusion for nodes with multiple users.
- * @param fuseActivations If true, enables fusing tosa.clamp (ReLU) into convolution attributes.
- * @param fuseTranspose If true, enables folding tosa.transpose into convolution weights.
- * @param fusePadding If true, enables absorbing explicit tosa.pad operations into convolution padding.
- * @param fuseLinear If true, enables the "Eating Machine" (folding Add/Sub/Mul into weights/bias).
+ * Populates a RewritePatternSet with structural optimization patterns.
+ * * @param patterns The pattern set to populate.
+ * @param advisorMode The active advisor policy (None, Memory, or Compute).
+ * @param minProfit The threshold for AI-guided decisions.
+ * @param fuseFanout Allows cloning for nodes with multiple users.
+ * @param fuseActivations Fuses tosa.clamp into convolution.
+ * @param fuseTranspose Folds tosa.transpose into weights.
+ * @param fusePadding Absorbs explicit tosa.pad into convolution.
+ * @param fuseLinear Folds Add/Sub/Mul into weights/bias.
  */
 void populateTosaStructuralFusionPatterns(
     RewritePatternSet &patterns, 
+    int advisorMode,
+    float minProfit,
     bool fuseFanout, 
     bool fuseActivations, 
     bool fuseTranspose,
@@ -27,14 +28,7 @@ void populateTosaStructuralFusionPatterns(
     bool fuseLinear);
 
 /**
- * @brief Populates a RewritePatternSet with pure algebraic and pointwise folding patterns.
- * * Algebraic patterns focus on math-to-math simplifications that do not necessarily 
- * require a convolution anchor.
- * * Examples include:
- * - Arithmetic Identities: x + 0 => x, x * 1 => x
- * - Pointwise Chains: (x + C1) + C2 => x + (C1 + C2)
- *
- * @param patterns The pattern set to populate.
+ * Populates a RewritePatternSet with pure algebraic folding patterns.
  */
 void populateTosaAlgebraicFoldingPatterns(RewritePatternSet &patterns);
 

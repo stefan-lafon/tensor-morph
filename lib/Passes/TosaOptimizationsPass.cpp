@@ -74,10 +74,16 @@ struct TosaOptimizationsPass :
     MLIRContext *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     
-    // We pass the configuration to the pattern population logic.
-    // For now, the structural registry still uses the original parameters.
+    // Pass the advisor settings down to the structural population function.
     tensormorph::populateTosaStructuralFusionPatterns(
-        patterns, fuseFanout, fuseActivations, fuseTranspose, fusePadding, fuseLinear);
+        patterns, 
+        static_cast<int>(advisorMode.getValue()),
+        minProfit,
+        fuseFanout, 
+        fuseActivations, 
+        fuseTranspose, 
+        fusePadding, 
+        fuseLinear);
     
     if (foldAlgebraic) {
       tensormorph::populateTosaAlgebraicFoldingPatterns(patterns);

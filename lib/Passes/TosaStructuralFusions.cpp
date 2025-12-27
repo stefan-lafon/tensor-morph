@@ -1,14 +1,15 @@
 #include "TosaPatterns.h"
+#include "TensorFeatures.h"
 #include "mlir/Dialect/Tosa/IR/TosaOps.h"
 #include "mlir/IR/PatternMatch.h"
+#include "llvm/Support/raw_ostream.h"
 
 using namespace mlir;
+using namespace mlir::tensormorph;
 
 namespace {
 
-/**
- * Helper: Permutes a 4D weight tensor [OC, KH, KW, IC] based on input perms.
- */
+// Helper: Permutes a 4D weight tensor [OC, KH, KW, IC] based on input perms.
 DenseElementsAttr permuteWeights(DenseElementsAttr attr, ArrayRef<int32_t> perms) {
     auto type = attr.getType().cast<RankedTensorType>();
     auto shape = type.getShape();
@@ -108,13 +109,23 @@ struct TransposeFolding : public OpRewritePattern<tosa::Conv2DOp> {
 // 3. Linear Math Folding (Standard Conv2D)
 struct FoldLinearMathIntoConv : public OpRewritePattern<tosa::Conv2DOp> {
   bool allowFanout;
-  FoldLinearMathIntoConv(MLIRContext *context, bool fuseFanout) 
-      : OpRewritePattern<tosa::Conv2DOp>(context), allowFanout(fuseFanout) {}
+  int advisorMode;
+  float minProfit;
+
+  FoldLinearMathIntoConv(MLIRContext *context, bool fuseFanout, int mode, float profit) 
+      : OpRewritePattern<tosa::Conv2DOp>(context), allowFanout(fuseFanout), advisorMode(mode), minProfit(profit) {}
 
   LogicalResult matchAndRewrite(tosa::Conv2DOp convOp, PatternRewriter &rewriter) const override {
     auto weightConst = convOp.getWeight().getDefiningOp<tosa::ConstOp>();
     auto biasConst = convOp.getBias().getDefiningOp<tosa::ConstOp>();
     if (!weightConst || !biasConst) return failure();
+
+    TensorFeatures features = extractFeatures(convOp);
+    if (advisorMode != 0) {
+      llvm::outs() << "[TensorMorph Advisor] h:" << features.in_h << " w:" << features.in_w 
+                   << " ic:" << features.in_c << " oc:" << features.out_c 
+                   << " chain:" << features.chain_len << "\n";
+    }
 
     auto weightAttr = weightConst.getValue().cast<DenseElementsAttr>();
     auto biasAttr = biasConst.getValue().cast<DenseElementsAttr>();
@@ -189,13 +200,22 @@ struct FoldLinearMathIntoConv : public OpRewritePattern<tosa::Conv2DOp> {
 // 4. Linear Math Folding (Depthwise Conv2D)
 struct FoldLinearMathIntoDepthwiseConv : public OpRewritePattern<tosa::DepthwiseConv2DOp> {
   bool allowFanout;
-  FoldLinearMathIntoDepthwiseConv(MLIRContext *context, bool fuseFanout) 
-      : OpRewritePattern<tosa::DepthwiseConv2DOp>(context), allowFanout(fuseFanout) {}
+  int advisorMode;
+  float minProfit;
+
+  FoldLinearMathIntoDepthwiseConv(MLIRContext *context, bool fuseFanout, int mode, float profit) 
+      : OpRewritePattern<tosa::DepthwiseConv2DOp>(context), allowFanout(fuseFanout), advisorMode(mode), minProfit(profit) {}
 
   LogicalResult matchAndRewrite(tosa::DepthwiseConv2DOp dwOp, PatternRewriter &rewriter) const override {
     auto weightConst = dwOp.getWeight().getDefiningOp<tosa::ConstOp>();
     auto biasConst = dwOp.getBias().getDefiningOp<tosa::ConstOp>();
     if (!weightConst || !biasConst) return failure();
+
+    TensorFeatures features = extractFeatures(dwOp);
+    if (advisorMode != 0) {
+      llvm::outs() << "[TensorMorph Advisor] h:" << features.in_h << " w:" << features.in_w 
+                   << " chain:" << features.chain_len << "\n";
+    }
 
     auto weightAttr = weightConst.getValue().cast<DenseElementsAttr>();
     auto biasAttr = biasConst.getValue().cast<DenseElementsAttr>();
@@ -274,12 +294,13 @@ struct FuseClampIntoAnchor : public OpRewritePattern<tosa::ClampOp> {
 } // namespace
 
 void mlir::tensormorph::populateTosaStructuralFusionPatterns(
-    RewritePatternSet &patterns, bool fuseFanout, bool fuseActivations, 
+    RewritePatternSet &patterns, int advisorMode, float minProfit,
+    bool fuseFanout, bool fuseActivations, 
     bool fuseTranspose, bool fusePadding, bool fuseLinear) {
   
   if (fuseLinear) {
-    patterns.add<FoldLinearMathIntoConv>(patterns.getContext(), fuseFanout);
-    patterns.add<FoldLinearMathIntoDepthwiseConv>(patterns.getContext(), fuseFanout);
+    patterns.add<FoldLinearMathIntoConv>(patterns.getContext(), fuseFanout, advisorMode, minProfit);
+    patterns.add<FoldLinearMathIntoDepthwiseConv>(patterns.getContext(), fuseFanout, advisorMode, minProfit);
   }
   if (fusePadding) patterns.add<PadElimination>(patterns.getContext());
   if (fuseTranspose) patterns.add<TransposeFolding>(patterns.getContext());

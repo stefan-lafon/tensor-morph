@@ -4,7 +4,7 @@
     "metadata": {
         "colab": {
             "provenance": [],
-            "authorship_tag": "ABX9TyNGQDcFCUxq71e1i7ZVUR/I"
+            "authorship_tag": "ABX9TyM+woC5mCTUJj0X/C/Sncuf"
         },
         "kernelspec": {
             "name": "python3",
@@ -133,14 +133,20 @@
             "cell_type": "code",
             "source": [
                 "# @title 4. Run TensorMorph optimizer\n",
+                "print(\"Running TensorMorph with no AI advisor.\")\n",
                 "!/content/tensormorph_local/build/tensormorph-opt \\\n",
                 "    --tosa-opt \\\n",
+                "    --allow-unregistered-dialect \\\n",
+                "    /content/tensormorph_local/test.mlir\n",
+                "\n",
+                "print(\"Running TensorMorph with the memory AI advisor.\")\n",
+                "!/content/tensormorph_local/build/tensormorph-opt \\\n",
+                "    --tosa-opt=\"ai-advisor=memory\" \\\n",
                 "    --allow-unregistered-dialect \\\n",
                 "    /content/tensormorph_local/test.mlir"
             ],
             "metadata": {
                 "id": "TVD4Y9TzSVVg",
-                "cellView": "form",
                 "collapsed": true
             },
             "execution_count": null,
