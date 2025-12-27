@@ -1,6 +1,9 @@
 # Define the source files
 set(PASS_SOURCES
-  Passes/TosaLinearAlgebraFolder.cpp
+  Passes/TosaOptimizationsPass.cpp
+  Passes/TosaStructuralFusions.cpp
+  Passes/TosaAlgebraicFolds.cpp
+  Passes/TensorFeatures.cpp
 )
 
 # Create the shared library
@@ -9,7 +12,8 @@ add_library(TensorMorphPasses SHARED
 )
 
 target_include_directories(TensorMorphPasses PRIVATE
-  ${PROJECT_SOURCE_DIR}/include
+  ${PROJECT_SOURCE_DIR}/lib
+  ${PROJECT_SOURCE_DIR}/lib/Passes
   /usr/lib/llvm-18/include
 )
 
