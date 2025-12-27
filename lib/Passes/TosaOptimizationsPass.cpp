@@ -6,6 +6,10 @@ using namespace mlir;
 
 namespace {
 
+/**
+ * Main pass for TensorMorph's TOSA optimizations.
+ * This class handles both structural fusions and algebraic folding.
+ */
 struct TosaOptimizationsPass : 
     public PassWrapper<TosaOptimizationsPass, OperationPass<ModuleOp>> {
   MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(TosaOptimizationsPass)
@@ -19,7 +23,28 @@ struct TosaOptimizationsPass :
     this->fusePadding = other.fusePadding;
     this->fuseLinear = other.fuseLinear;
     this->foldAlgebraic = other.foldAlgebraic;
+    this->advisorMode = other.advisorMode;
+    this->minProfit = other.minProfit;
   }
+
+  // --- Advisor Policy Flags ---
+
+  enum AdvisorMode { None, Memory, Compute };
+  
+  Option<AdvisorMode> advisorMode{*this, "ai-advisor",
+    llvm::cl::desc("Select the AI advisor profile for optimization decisions."),
+    llvm::cl::init(None),
+    llvm::cl::values(
+      clEnumValN(None, "none", "Greedy optimization (no AI)."),
+      clEnumValN(Memory, "memory", "Use Memory-Bound hardware advisor."),
+      clEnumValN(Compute, "compute", "Use Compute-Bound hardware advisor.")
+    )};
+
+  Option<float> minProfit{*this, "min-profit",
+    llvm::cl::desc("Minimum predicted profit ratio to trigger fusion."),
+    llvm::cl::init(1.2f)};
+
+  // --- Optimization Capability Flags ---
 
   Option<bool> fuseFanout{*this, "fuse-fanout", 
     llvm::cl::desc("Allow cloning operations to enable fusion across multiple users."), 
@@ -49,7 +74,8 @@ struct TosaOptimizationsPass :
     MLIRContext *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     
-    // Pass the new fuseLinear boolean to the structural registry
+    // We pass the configuration to the pattern population logic.
+    // For now, the structural registry still uses the original parameters.
     tensormorph::populateTosaStructuralFusionPatterns(
         patterns, fuseFanout, fuseActivations, fuseTranspose, fusePadding, fuseLinear);
     
