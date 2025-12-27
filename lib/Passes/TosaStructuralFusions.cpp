@@ -109,22 +109,33 @@ struct TransposeFolding : public OpRewritePattern<tosa::Conv2DOp> {
 // 3. Linear Math Folding (Standard Conv2D)
 struct FoldLinearMathIntoConv : public OpRewritePattern<tosa::Conv2DOp> {
   bool allowFanout;
-  int advisorMode;
+  Advisor *advisor;
   float minProfit;
 
-  FoldLinearMathIntoConv(MLIRContext *context, bool fuseFanout, int mode, float profit) 
-      : OpRewritePattern<tosa::Conv2DOp>(context), allowFanout(fuseFanout), advisorMode(mode), minProfit(profit) {}
+  FoldLinearMathIntoConv(MLIRContext *context, bool fuseFanout, Advisor *adv, float profit) 
+      : OpRewritePattern<tosa::Conv2DOp>(context), allowFanout(fuseFanout), advisor(adv), minProfit(profit) {}
 
   LogicalResult matchAndRewrite(tosa::Conv2DOp convOp, PatternRewriter &rewriter) const override {
     auto weightConst = convOp.getWeight().getDefiningOp<tosa::ConstOp>();
     auto biasConst = convOp.getBias().getDefiningOp<tosa::ConstOp>();
     if (!weightConst || !biasConst) return failure();
 
-    TensorFeatures features = extractFeatures(convOp);
-    if (advisorMode != 0) {
-      llvm::outs() << "[TensorMorph Advisor] h:" << features.in_h << " w:" << features.in_w 
-                   << " ic:" << features.in_c << " oc:" << features.out_c 
-                   << " chain:" << features.chain_len << "\n";
+    // AI Decision Point: Consult the Advisor if active.
+    // Fusion decision logic:
+    // 1. If no advisor is provided, we default to a greedy policy (always fuse).
+    // 2. If an advisor is active, we extract IR features and query the model.
+    // 3. Fusions are only applied if the predicted profit meets the user-defined threshold.
+    if (advisor) {
+      TensorFeatures features = extractFeatures(convOp);
+      float predictedProfit = advisor->Predict(features.toVector());
+      
+      // Temporary diagnostic log. TODO(stefan): Hide this behind a debug flag.
+      llvm::errs() << "[AI Decision] Profile: " << advisor->GetProfileName() 
+                   << " | Score: " << predictedProfit << "\\n";
+
+      if (predictedProfit < minProfit) {
+        return failure(); // Advisor vetoed the fusion.
+      }
     }
 
     auto weightAttr = weightConst.getValue().cast<DenseElementsAttr>();
@@ -200,21 +211,22 @@ struct FoldLinearMathIntoConv : public OpRewritePattern<tosa::Conv2DOp> {
 // 4. Linear Math Folding (Depthwise Conv2D)
 struct FoldLinearMathIntoDepthwiseConv : public OpRewritePattern<tosa::DepthwiseConv2DOp> {
   bool allowFanout;
-  int advisorMode;
+  Advisor *advisor;
   float minProfit;
 
-  FoldLinearMathIntoDepthwiseConv(MLIRContext *context, bool fuseFanout, int mode, float profit) 
-      : OpRewritePattern<tosa::DepthwiseConv2DOp>(context), allowFanout(fuseFanout), advisorMode(mode), minProfit(profit) {}
+  FoldLinearMathIntoDepthwiseConv(MLIRContext *context, bool fuseFanout, Advisor *adv, float profit) 
+      : OpRewritePattern<tosa::DepthwiseConv2DOp>(context), allowFanout(fuseFanout), advisor(adv), minProfit(profit) {}
 
   LogicalResult matchAndRewrite(tosa::DepthwiseConv2DOp dwOp, PatternRewriter &rewriter) const override {
     auto weightConst = dwOp.getWeight().getDefiningOp<tosa::ConstOp>();
     auto biasConst = dwOp.getBias().getDefiningOp<tosa::ConstOp>();
     if (!weightConst || !biasConst) return failure();
 
-    TensorFeatures features = extractFeatures(dwOp);
-    if (advisorMode != 0) {
-      llvm::outs() << "[TensorMorph Advisor] h:" << features.in_h << " w:" << features.in_w 
-                   << " chain:" << features.chain_len << "\n";
+    if (advisor) {
+      TensorFeatures features = extractFeatures(dwOp);
+      if (advisor->Predict(features.toVector()) < minProfit) {
+        return failure();
+      }
     }
 
     auto weightAttr = weightConst.getValue().cast<DenseElementsAttr>();
@@ -294,13 +306,13 @@ struct FuseClampIntoAnchor : public OpRewritePattern<tosa::ClampOp> {
 } // namespace
 
 void mlir::tensormorph::populateTosaStructuralFusionPatterns(
-    RewritePatternSet &patterns, int advisorMode, float minProfit,
+    RewritePatternSet &patterns, Advisor *advisor, float minProfit,
     bool fuseFanout, bool fuseActivations, 
     bool fuseTranspose, bool fusePadding, bool fuseLinear) {
   
   if (fuseLinear) {
-    patterns.add<FoldLinearMathIntoConv>(patterns.getContext(), fuseFanout, advisorMode, minProfit);
-    patterns.add<FoldLinearMathIntoDepthwiseConv>(patterns.getContext(), fuseFanout, advisorMode, minProfit);
+    patterns.add<FoldLinearMathIntoConv>(patterns.getContext(), fuseFanout, advisor, minProfit);
+    patterns.add<FoldLinearMathIntoDepthwiseConv>(patterns.getContext(), fuseFanout, advisor, minProfit);
   }
   if (fusePadding) patterns.add<PadElimination>(patterns.getContext());
   if (fuseTranspose) patterns.add<TransposeFolding>(patterns.getContext());

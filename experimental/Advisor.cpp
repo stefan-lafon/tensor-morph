@@ -1,10 +1,11 @@
-#include "Advisor.h"
-#include "codegen/MemoryAdvisor.h"
-#include "codegen/ComputeAdvisor.h"
+#include "experimental/Advisor.h"
+#include "experimental/codegen/MemoryAdvisor.h"
+#include "experimental/codegen/ComputeAdvisor.h"
 #include <stdexcept>
 
 /**
  * Concrete implementation that routes calls to the transpiled models.
+ * This class acts as a bridge between the Advisor interface and the generated code.
  */
 class ModelAdvisor : public Advisor {
 private:
@@ -14,7 +15,7 @@ public:
     explicit ModelAdvisor(const std::string& profile) : profile_name(profile) {}
 
     float Predict(const std::vector<float>& features) const override {
-        // Route to the specific generated class based on profile.
+        // Route to the specific generated class based on the selected hardware profile.
         if (profile_name == "memory_bound") {
             return MemoryAdvisor::predict(features);
         } else if (profile_name == "compute_bound") {
@@ -30,7 +31,7 @@ public:
 };
 
 /**
- * Factory method to instantiate the correct advisor.
+ * Factory method to instantiate the correct advisor implementation.
  */
 std::unique_ptr<Advisor> CreateAdvisor(const std::string& profile) {
     return std::make_unique<ModelAdvisor>(profile);

@@ -4,7 +4,7 @@
     "metadata": {
         "colab": {
             "provenance": [],
-            "authorship_tag": "ABX9TyM+woC5mCTUJj0X/C/Sncuf"
+            "authorship_tag": "ABX9TyOZz5p+RxKKtoRkkgBPg1yj"
         },
         "kernelspec": {
             "name": "python3",
@@ -98,7 +98,7 @@
         {
             "cell_type": "code",
             "source": [
-                "# @title 3. Test MLIR (Conv -> Add -> Clamp)\n",
+                "# @title 3. Test MLIR (Conv -> Mul -> Add -> Sub)\n",
                 "%%writefile /content/tensormorph_local/test.mlir\n",
                 "module {\n",
                 "  func.func @main(%input: tensor<1x1024x1024x1xf32>) -> tensor<1x1024x1024x1xf32> {\n",
@@ -123,8 +123,7 @@
                 "}"
             ],
             "metadata": {
-                "id": "JIRbH7HKSHEz",
-                "cellView": "form"
+                "id": "JIRbH7HKSHEz"
             },
             "execution_count": null,
             "outputs": []
@@ -141,7 +140,13 @@
                 "\n",
                 "print(\"Running TensorMorph with the memory AI advisor.\")\n",
                 "!/content/tensormorph_local/build/tensormorph-opt \\\n",
-                "    --tosa-opt=\"ai-advisor=memory\" \\\n",
+                "    --tosa-opt=\"ai-advisor=memory min-profit=1.1\" \\\n",
+                "    --allow-unregistered-dialect \\\n",
+                "    /content/tensormorph_local/test.mlir\n",
+                "\n",
+                "print(\"Running TensorMorph with the compute AI advisor.\")\n",
+                "!/content/tensormorph_local/build/tensormorph-opt \\\n",
+                "    --tosa-opt=\"ai-advisor=compute min-profit=1.1\" \\\n",
                 "    --allow-unregistered-dialect \\\n",
                 "    /content/tensormorph_local/test.mlir"
             ],

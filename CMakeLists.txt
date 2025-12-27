@@ -12,17 +12,22 @@ message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 include_directories(${LLVM_INCLUDE_DIRS})
 include_directories(${MLIR_INCLUDE_DIRS})
+
+# Add the project root to the include path.
+# This allows #include "experimental/Advisor.h" to work correctly.
+include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/lib/Passes)
 
 add_definitions(${LLVM_DEFINITIONS})
 
 # Modular Optimization Library
-# We include TensorFeatures.cpp here to satisfy the linker
+# Added experimental/Advisor.cpp to ensure CreateAdvisor is linked.
 add_library(TosaOptimizations SHARED
     lib/Passes/TosaOptimizationsPass.cpp
     lib/Passes/TosaStructuralFusions.cpp
     lib/Passes/TosaAlgebraicFolds.cpp
     lib/Passes/TensorFeatures.cpp
+    experimental/Advisor.cpp
 )
 
 target_link_libraries(TosaOptimizations

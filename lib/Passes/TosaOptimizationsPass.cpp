@@ -1,8 +1,13 @@
 #include "TosaPatterns.h"
+#include "experimental/Advisor.h"
+#include "experimental/codegen/MemoryAdvisor.h"
+#include "experimental/codegen/ComputeAdvisor.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include <memory>
 
 using namespace mlir;
+using namespace mlir::tensormorph;
 
 namespace {
 
@@ -74,10 +79,19 @@ struct TosaOptimizationsPass :
     MLIRContext *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     
-    // Pass the advisor settings down to the structural population function.
+    // Use unique_ptr to manage the advisor's lifetime.
+    std::unique_ptr<Advisor> activeAdvisor;
+
+    // Explicitly resetting the unique_ptr to the derived type.
+    if (advisorMode == Memory) {
+      activeAdvisor.reset(new MemoryAdvisor());
+    } else if (advisorMode == Compute) {
+      activeAdvisor.reset(new ComputeAdvisor());
+    }
+
     tensormorph::populateTosaStructuralFusionPatterns(
         patterns, 
-        static_cast<int>(advisorMode.getValue()),
+        activeAdvisor.get(),
         minProfit,
         fuseFanout, 
         fuseActivations, 
