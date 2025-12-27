@@ -11,7 +11,7 @@ Optimization in TensorMorph is split into two distinct phases:
 1. **The Veto Policy (AI)**: Before applying a transformation (like fusing an Add into a Conv2D), the optimizer extracts IR features (tensor shapes, kernel sizes, chain lengths) and queries an AI model. The AI predicts a profit ratio; if the score is below a user-defined threshold, the optimization is vetoed to prevent performance regression on specific hardware.
 2. **The Execution Layer (MLIR)**: If the AI grants approval, TensorMorph executes the rewrite, manipulating the IR and baking mathematical effects directly into weights and biases.
 
-For more details on how our AI advisors are trained and transpiled, see the [AI & Experimental README](./experimental/README.md).
+For more details on how our AI advisors are trained and transpiled, see the [AI and Experimental README](./experimental/README.md).
 
 ## Transformation Suite
 
@@ -27,11 +27,12 @@ For more details on how our AI advisors are trained and transpiled, see the [AI 
 
 ## Optimization and Advisor Flags
 
-### Advisor Selection
+### Advisor Settings
 | Flag | Default | Description |
 | :--- | :--- | :--- |
-| `ai-advisor` | `none` | Selects the profile: `none` (Greedy), `memory` (Memory-Bound), or `compute` (Compute-Bound). |
+| `ai-advisor` | `none` | Selects the profile: `memory` (Memory-Bound) or `compute` (Compute-Bound). **Setting this to `none` (default) means all optimizations will run greedily.** |
 | `min-profit` | `1.2` | The minimum AI-predicted profit ratio required to trigger a fusion. |
+| `debug-ai` | `false` | Enable detailed diagnostic logging to `stderr` to view AI scores and veto decisions. |
 
 ### Capability Toggles
 | Flag | Default | Description |
@@ -50,5 +51,5 @@ mkdir build && cd build
 cmake .. -GNinja
 ninja
 
-# Run with Memory-Bound AI Advisor
-./bin/tensormorph-opt --tosa-opt="ai-advisor=memory min-profit=1.5" input.mlir
+# Run with Memory-Bound AI Advisor and scoring logs enabled
+./bin/tensormorph-opt --tosa-opt="ai-advisor=memory min-profit=1.5 debug-ai=true" input.mlir

@@ -9,7 +9,7 @@ namespace tensormorph {
 
 /**
  * Populates a RewritePatternSet with structural optimization patterns.
- * @param patterns The pattern set to populate.
+ * * @param patterns The pattern set to populate.
  * @param advisor The AI Advisor instance to consult for fusion decisions.
  * @param minProfit The minimum predicted profit ratio required to apply a fusion.
  * @param fuseFanout Allow cloning operations to enable fusion across multiple users.
@@ -17,6 +17,7 @@ namespace tensormorph {
  * @param fuseTranspose Enable folding of Transpose operations into Convolution weights.
  * @param fusePadding Enable elimination of explicit Pad operations into Convolution.
  * @param fuseLinear Enable folding of Add/Sub/Mul math into Convolution weights and bias.
+ * @param debugAi If true, output diagnostic logs for AI decision making to stderr.
  */
 void populateTosaStructuralFusionPatterns(
     RewritePatternSet &patterns, 
@@ -26,7 +27,8 @@ void populateTosaStructuralFusionPatterns(
     bool fuseActivations, 
     bool fuseTranspose,
     bool fusePadding,
-    bool fuseLinear);
+    bool fuseLinear,
+    bool debugAi);
 
 /**
  * Populates a RewritePatternSet with pure algebraic folding patterns.

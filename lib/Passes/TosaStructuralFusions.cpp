@@ -9,7 +9,10 @@ using namespace mlir::tensormorph;
 
 namespace {
 
-// Helper: Permutes a 4D weight tensor [OC, KH, KW, IC] based on input perms.
+/**
+ * Helper: Permutes a 4D weight tensor [OC, KH, KW, IC] based on input perms.
+ * Used to fold transposes into convolution weights at compile-time.
+ */
 DenseElementsAttr permuteWeights(DenseElementsAttr attr, ArrayRef<int32_t> perms) {
     auto type = attr.getType().cast<RankedTensorType>();
     auto shape = type.getShape();
@@ -42,7 +45,8 @@ DenseElementsAttr permuteWeights(DenseElementsAttr attr, ArrayRef<int32_t> perms
     return DenseElementsAttr::get(newType, llvm::ArrayRef<float>(newValues));
 }
 
-// 1. Pad Elimination
+// 1. Pad Elimination.
+// Absorbs explicit tosa.pad operations into the internal convolution padding attribute.
 struct PadElimination : public OpRewritePattern<tosa::Conv2DOp> {
     using OpRewritePattern<tosa::Conv2DOp>::OpRewritePattern;
 
@@ -76,7 +80,8 @@ struct PadElimination : public OpRewritePattern<tosa::Conv2DOp> {
     }
 };
 
-// 2. Transpose Folding
+// 2. Transpose Folding.
+// Bakes spatial permutations directly into the weight constant.
 struct TransposeFolding : public OpRewritePattern<tosa::Conv2DOp> {
     using OpRewritePattern<tosa::Conv2DOp>::OpRewritePattern;
 
@@ -106,14 +111,16 @@ struct TransposeFolding : public OpRewritePattern<tosa::Conv2DOp> {
     }
 };
 
-// 3. Linear Math Folding (Standard Conv2D)
+// 3. Linear Math Folding (Standard Conv2D).
+// Fuses multiplication, addition, and subtraction into weights/biases.
 struct FoldLinearMathIntoConv : public OpRewritePattern<tosa::Conv2DOp> {
   bool allowFanout;
   Advisor *advisor;
   float minProfit;
+  bool debugAi;
 
-  FoldLinearMathIntoConv(MLIRContext *context, bool fuseFanout, Advisor *adv, float profit) 
-      : OpRewritePattern<tosa::Conv2DOp>(context), allowFanout(fuseFanout), advisor(adv), minProfit(profit) {}
+  FoldLinearMathIntoConv(MLIRContext *context, bool fuseFanout, Advisor *adv, float profit, bool debug) 
+      : OpRewritePattern<tosa::Conv2DOp>(context), allowFanout(fuseFanout), advisor(adv), minProfit(profit), debugAi(debug) {}
 
   LogicalResult matchAndRewrite(tosa::Conv2DOp convOp, PatternRewriter &rewriter) const override {
     auto weightConst = convOp.getWeight().getDefiningOp<tosa::ConstOp>();
@@ -129,12 +136,13 @@ struct FoldLinearMathIntoConv : public OpRewritePattern<tosa::Conv2DOp> {
       TensorFeatures features = extractFeatures(convOp);
       float predictedProfit = advisor->Predict(features.toVector());
       
-      // Temporary diagnostic log. TODO(stefan): Hide this behind a debug flag.
-      llvm::errs() << "[AI Decision] Profile: " << advisor->GetProfileName() 
-                   << " | Score: " << predictedProfit << "\\n";
+      if (debugAi) {
+        llvm::errs() << "[AI Decision] Profile: " << advisor->GetProfileName() 
+                     << " | Score: " << predictedProfit << "\n";
+      }
 
       if (predictedProfit < minProfit) {
-        return failure(); // Advisor vetoed the fusion.
+        return failure(); 
       }
     }
 
@@ -208,14 +216,15 @@ struct FoldLinearMathIntoConv : public OpRewritePattern<tosa::Conv2DOp> {
   }
 };
 
-// 4. Linear Math Folding (Depthwise Conv2D)
+// 4. Linear Math Folding (Depthwise Conv2D).
 struct FoldLinearMathIntoDepthwiseConv : public OpRewritePattern<tosa::DepthwiseConv2DOp> {
   bool allowFanout;
   Advisor *advisor;
   float minProfit;
+  bool debugAi;
 
-  FoldLinearMathIntoDepthwiseConv(MLIRContext *context, bool fuseFanout, Advisor *adv, float profit) 
-      : OpRewritePattern<tosa::DepthwiseConv2DOp>(context), allowFanout(fuseFanout), advisor(adv), minProfit(profit) {}
+  FoldLinearMathIntoDepthwiseConv(MLIRContext *context, bool fuseFanout, Advisor *adv, float profit, bool debug) 
+      : OpRewritePattern<tosa::DepthwiseConv2DOp>(context), allowFanout(fuseFanout), advisor(adv), minProfit(profit), debugAi(debug) {}
 
   LogicalResult matchAndRewrite(tosa::DepthwiseConv2DOp dwOp, PatternRewriter &rewriter) const override {
     auto weightConst = dwOp.getWeight().getDefiningOp<tosa::ConstOp>();
@@ -224,7 +233,14 @@ struct FoldLinearMathIntoDepthwiseConv : public OpRewritePattern<tosa::Depthwise
 
     if (advisor) {
       TensorFeatures features = extractFeatures(dwOp);
-      if (advisor->Predict(features.toVector()) < minProfit) {
+      float predictedProfit = advisor->Predict(features.toVector());
+      
+      if (debugAi) {
+        llvm::errs() << "[AI Decision] Profile: " << advisor->GetProfileName() 
+                     << " | Score: " << predictedProfit << "\n";
+      }
+
+      if (predictedProfit < minProfit) {
         return failure();
       }
     }
@@ -284,7 +300,8 @@ struct FoldLinearMathIntoDepthwiseConv : public OpRewritePattern<tosa::Depthwise
   }
 };
 
-// 5. Activation Injection (Anchor-Agnostic)
+// 5. Activation Injection.
+// Fuses Clamp operations into convolution anchors as fused attributes.
 struct FuseClampIntoAnchor : public OpRewritePattern<tosa::ClampOp> {
     using OpRewritePattern<tosa::ClampOp>::OpRewritePattern;
 
@@ -308,11 +325,11 @@ struct FuseClampIntoAnchor : public OpRewritePattern<tosa::ClampOp> {
 void mlir::tensormorph::populateTosaStructuralFusionPatterns(
     RewritePatternSet &patterns, Advisor *advisor, float minProfit,
     bool fuseFanout, bool fuseActivations, 
-    bool fuseTranspose, bool fusePadding, bool fuseLinear) {
+    bool fuseTranspose, bool fusePadding, bool fuseLinear, bool debugAi) {
   
   if (fuseLinear) {
-    patterns.add<FoldLinearMathIntoConv>(patterns.getContext(), fuseFanout, advisor, minProfit);
-    patterns.add<FoldLinearMathIntoDepthwiseConv>(patterns.getContext(), fuseFanout, advisor, minProfit);
+    patterns.add<FoldLinearMathIntoConv>(patterns.getContext(), fuseFanout, advisor, minProfit, debugAi);
+    patterns.add<FoldLinearMathIntoDepthwiseConv>(patterns.getContext(), fuseFanout, advisor, minProfit, debugAi);
   }
   if (fusePadding) patterns.add<PadElimination>(patterns.getContext());
   if (fuseTranspose) patterns.add<TransposeFolding>(patterns.getContext());
