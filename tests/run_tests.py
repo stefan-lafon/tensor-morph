@@ -4,7 +4,6 @@ import sys
 
 # Configuration
 LOCAL_FOLDER = "/content/tensormorph_local"
-# Pointing to the build root where ninja just linked the executable.
 OPT_TOOL = f"{LOCAL_FOLDER}/build/tensormorph-opt"
 FILECHECK = "/usr/lib/llvm-18/bin/FileCheck"
 TEST_DIR = f"{LOCAL_FOLDER}/tests"
@@ -19,7 +18,7 @@ def run_flag_tests():
     """Suite of tests for CLI flags and high-level logic."""
     print("\n[1/2] Running Flag Logic Tests...")
     passed = 0
-    total = 4
+    total = 6
     
     # Case 1: Transpose Folding.
     out, _, _ = run_process(f'{OPT_TOOL} --tosa-opt {TEST_DIR}/transpose_fold.mlir')
@@ -55,6 +54,24 @@ def run_flag_tests():
         passed += 1
     else:
         print("  [FAIL] Fan-out cloning")
+
+    # Case 5: AI Mock Approval logic.
+    # Score is 1.0. min-profit 0.5 < 1.0 (Fusion should happen).
+    out, _, _ = run_process(f'{OPT_TOOL} --tosa-opt="ai-advisor=mock min-profit=0.5" {TEST_DIR}/conv_add_clamp.mlir')
+    if "tosa.add" not in out:
+        print("  [OK] AI Mock Approval logic")
+        passed += 1
+    else:
+        print("  [FAIL] AI Mock Approval logic")
+
+    # Case 6: AI Mock Veto logic.
+    # Score is 1.0. min-profit 1.5 > 1.0 (Veto should happen).
+    out, _, _ = run_process(f'{OPT_TOOL} --tosa-opt="ai-advisor=mock min-profit=1.5" {TEST_DIR}/conv_add_clamp.mlir')
+    if "tosa.add" in out:
+        print("  [OK] AI Mock Veto logic")
+        passed += 1
+    else:
+        print("  [FAIL] AI Mock Veto logic")
 
     return passed, total
 

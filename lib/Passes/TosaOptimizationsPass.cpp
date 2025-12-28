@@ -13,7 +13,9 @@ namespace {
 
 /**
  * Main pass for TensorMorph's TOSA optimizations.
- * This class orchestrates structural fusions (AI-guided) and structural/algebraic folding (deterministic).
+ * This class orchestrates structural fusions (AI-guided) and algebraic folding (deterministic).
+ * AI controls decisions as to what and when to optimize, while optimization execution 
+ * happens after AI has made the decision.
  */
 struct TosaOptimizationsPass : 
     public PassWrapper<TosaOptimizationsPass, OperationPass<ModuleOp>> {
@@ -35,21 +37,22 @@ struct TosaOptimizationsPass :
 
   // --- AI Advisor Settings ---
 
-  enum AdvisorMode { None, Memory, Compute };
-  
   Option<AdvisorMode> advisorMode{*this, "ai-advisor",
-    llvm::cl::desc("Select the AI advisor profile for targeted hardware optimization."),
+    llvm::cl::desc("Select the AI advisor profile for hardware-aware optimization."),
     llvm::cl::init(None),
     llvm::cl::values(
       clEnumValN(None, "none", "Use standard greedy optimization (no AI)."),
       clEnumValN(Memory, "memory", "Use Memory-Bound hardware advisor."),
-      clEnumValN(Compute, "compute", "Use Compute-Bound hardware advisor.")
+      clEnumValN(Compute, "compute", "Use Compute-Bound hardware advisor."),
+      clEnumValN(Mock, "mock", "Use Mock advisor for testing veto logic.")
     )};
 
+  // Integrated user-defined thresholds for fine-tuning AI aggressiveness.
   Option<float> minProfit{*this, "min-profit",
-    llvm::cl::desc("Minimum predicted profit ratio required to apply an AI-guided fusion."),
+    llvm::cl::desc("Minimum predicted profit ratio required to allow a fusion."),
     llvm::cl::init(1.2f)};
 
+  // Diagnostic flag to allow fine-tuning of AI aggressiveness during the optimization process.
   Option<bool> debugAi{*this, "debug-ai", 
     llvm::cl::desc("Enable detailed diagnostic logging for AI veto decisions."), 
     llvm::cl::init(false)};
@@ -85,16 +88,20 @@ struct TosaOptimizationsPass :
     RewritePatternSet patterns(ctx);
     
     // Select the concrete advisor implementation based on CLI flags.
+    // Integrated specialized hardware advisors: Memory-Bound and Compute-Bound profiles.
     std::unique_ptr<Advisor> activeAdvisor;
 
     if (advisorMode == Memory) {
       activeAdvisor.reset(new MemoryAdvisor());
     } else if (advisorMode == Compute) {
       activeAdvisor.reset(new ComputeAdvisor());
+    } else if (advisorMode == Mock) {
+      // The Mock advisor returns a fixed 1.0 score to verify boundary logic.
+      activeAdvisor.reset(new MockAdvisor(1.0f));
     }
 
     // Populate guided structural fusion patterns.
-    tensormorph::populateTosaStructuralFusionPatterns(
+    populateTosaStructuralFusionPatterns(
         patterns, 
         activeAdvisor.get(),
         minProfit,
@@ -107,7 +114,7 @@ struct TosaOptimizationsPass :
     
     // Populate anchor-less deterministic patterns.
     if (foldAlgebraic) {
-      tensormorph::populateTosaAlgebraicFoldingPatterns(patterns);
+      populateTosaAlgebraicFoldingPatterns(patterns);
     }
 
     if (failed(applyPatternsAndFoldGreedily(getOperation(), std::move(patterns))))

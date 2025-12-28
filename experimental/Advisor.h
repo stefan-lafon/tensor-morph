@@ -1,22 +1,37 @@
-#pragma once
+#ifndef TENSORMORPH_ADVISOR_H
+#define TENSORMORPH_ADVISOR_H
+
 #include <vector>
 #include <string>
-#include <memory>
+
+namespace mlir {
+namespace tensormorph {
+
+enum AdvisorMode { None, Memory, Compute, Mock };
 
 /**
- * Interface for hardware-specific optimization advice.
- * Allows the compiler to stay agnostic of the underlying model type.
+ * Abstract base class for AI hardware advisors.
  */
 class Advisor {
 public:
     virtual ~Advisor() = default;
-
-    // Returns a predicted profit ratio for the given tensor shape.
     virtual float Predict(const std::vector<float>& features) const = 0;
-
-    // Identifies the hardware target this model was trained for.
     virtual std::string GetProfileName() const = 0;
 };
 
-// Factory function to create the appropriate advisor implementation.
-std::unique_ptr<Advisor> CreateAdvisor(const std::string& profile);
+/**
+ * Mock advisor for testing the compiler plumbing.
+ */
+class MockAdvisor : public Advisor {
+public:
+    explicit MockAdvisor(float fixedScore) : score(fixedScore) {}
+    float Predict(const std::vector<float>& features) const override { return score; }
+    std::string GetProfileName() const override { return "Mock"; }
+private:
+    float score;
+};
+
+} // namespace tensormorph
+} // namespace mlir
+
+#endif // TENSORMORPH_ADVISOR_H
