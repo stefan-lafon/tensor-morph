@@ -15,6 +15,7 @@ Optimization in TensorMorph is split into two distinct phases:
 
 
 ```mermaid
+%%{init: {'flowchart': {'nodeSpacing': 30, 'rankSpacing': 40}}}%%
 flowchart LR
     A[Input IR]
 
@@ -34,30 +35,40 @@ flowchart LR
 
     F[Optimized IR]
 
+    %% Spacer to absorb GitHub controls
+    SPACER[" "]:::spacer
+
+    %% Flow
     A --> B
     B -->|Feature Vector| C
     C -->|Profit Score| D
     D -->|Approved| E
     E --> F
     D -->|Veto| F
+    F --> SPACER
 
+    %% Node styling
     classDef input fill:#EEF4FA,stroke:#3A6EA5,color:#3A6EA5,stroke-width:1.5px
     classDef process fill:#F6F1E8,stroke:#9C6B1C,color:#9C6B1C,stroke-width:1.5px
     classDef ai fill:#D0E4F7,stroke:#1E4A78,color:#1E4A78,stroke-width:1.5px
     classDef decision fill:#D0E4F7,stroke:#1E4A78,color:#1E4A78,stroke-width:2px
     classDef mlir fill:#DFF4E0,stroke:#1F6F3E,color:#1F6F3E,stroke-width:1.5px
     classDef output fill:#E9F5F2,stroke:#1E6F5C,color:#1E6F5C,stroke-width:1.8px
+    classDef spacer fill:transparent,stroke:transparent
 
     class A input
     class B process
     class C,D ai
     class E mlir
     class F output
+    class SPACER spacer
 
+    %% Edge styling
     linkStyle 1 color:#9C6B1C,font-weight:bold,stroke:#9C6B1C,stroke-width:1.5px
     linkStyle 2 color:#6A1B9A,font-weight:bold,stroke:#6A1B9A,stroke-width:1.5px
-    linkStyle 3 color:#1F6F3E,font-weight:bold,stroke:#1F6F3E,stroke-width:1.5px   %% Approved
+    linkStyle 3 color:#1F6F3E,font-weight:bold,stroke:#1F6F3E,stroke-width:1.5px
     linkStyle 5 stroke:#D32F2F,color:#D32F2F,font-weight:bold,stroke-width:1.5px
+
 ```
 
 For more details on how our AI advisors are trained and transpiled, see the [AI and Experimental README](./experimental/README.md).
@@ -123,3 +134,4 @@ Run the integrated test runner to ensure no regressions:
 ```bash
 python3 tests/run_tests.py
 ```
+
