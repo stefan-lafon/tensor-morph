@@ -11,6 +11,66 @@ Optimization in TensorMorph is split into two distinct phases:
 1. **The Veto Policy (AI)**: Before applying a transformation (like fusing an Add into a Conv2D), the optimizer extracts IR features (tensor shapes, kernel sizes, chain lengths) and queries an AI model. The AI predicts a profit ratio; if the score is below a user-defined threshold, the optimization is vetoed to prevent performance regression on specific hardware.
 2. **The Execution Layer (MLIR)**: If the AI grants approval, TensorMorph executes the rewrite, manipulating the IR and baking mathematical effects directly into weights and biases.
 
+
+
+
+```mermaid
+%%{init: {'flowchart': {'nodeSpacing': 30, 'rankSpacing': 40}}}%%
+flowchart LR
+    A[Input IR]
+
+    subgraph " "
+        direction TB
+
+        B[IR Feature Extractor]
+
+        subgraph AI["AI Advisor"]
+            style AI fill:#D0E4F7,stroke:#1E4A78,stroke-width:1.5px
+            C[Decision Forest Models]
+            D{Veto Policy}
+        end
+
+        E[MLIR Rewriter]
+    end
+
+    F[Optimized IR]
+
+    %% Spacer to absorb GitHub controls
+    SPACER[" "]:::spacer
+
+    %% Flow
+    A --> B
+    B -->|Feature Vector| C
+    C -->|Profit Score| D
+    D -->|Approved| E
+    E --> F
+    D -->|Veto| F
+    F --> SPACER
+
+    %% Node styling
+    classDef input fill:#EEF4FA,stroke:#3A6EA5,color:#3A6EA5,stroke-width:1.5px
+    classDef process fill:#F6F1E8,stroke:#9C6B1C,color:#9C6B1C,stroke-width:1.5px
+    classDef ai fill:#D0E4F7,stroke:#1E4A78,color:#1E4A78,stroke-width:1.5px
+    classDef decision fill:#D0E4F7,stroke:#1E4A78,color:#1E4A78,stroke-width:2px
+    classDef mlir fill:#DFF4E0,stroke:#1F6F3E,color:#1F6F3E,stroke-width:1.5px
+    classDef output fill:#E9F5F2,stroke:#1E6F5C,color:#1E6F5C,stroke-width:1.8px
+    classDef spacer fill:transparent,stroke:transparent
+
+    class A input
+    class B process
+    class C,D ai
+    class E mlir
+    class F output
+    class SPACER spacer
+
+    %% Edge styling
+    linkStyle 1 color:#9C6B1C,font-weight:bold,stroke:#9C6B1C,stroke-width:1.5px
+    linkStyle 2 color:#6A1B9A,font-weight:bold,stroke:#6A1B9A,stroke-width:1.5px
+    linkStyle 3 color:#1F6F3E,font-weight:bold,stroke:#1F6F3E,stroke-width:1.5px
+    linkStyle 5 stroke:#D32F2F,color:#D32F2F,font-weight:bold,stroke-width:1.5px
+
+```
+
 For more details on how our AI advisors are trained and transpiled, see the [AI and Experimental README](./experimental/README.md).
 
 ## Transformation Suite
@@ -53,3 +113,25 @@ ninja
 
 # Run with Memory-Bound AI Advisor and scoring logs enabled
 ./bin/tensormorph-opt --tosa-opt="ai-advisor=memory min-profit=1.5 debug-ai=true" input.mlir
+```
+
+## Extending TensorMorph
+
+To experiment with new optimizations or hardware targets, follow this developer workflow:
+
+### 1. Implement the Logic
+* **Patterns**: Define your new optimization pattern in `lib/Passes/TosaStructuralFusions.cpp`.
+* **Features**: If your optimization requires new AI signals, update the feature extraction logic in `lib/experimental/TensorFeatures.cpp`.
+
+### 2. Sandbox in TensorMorph-Lab
+Use the provided Colab/Jupyter notebook for rapid iteration:
+* **Define Test Case**: Add a custom TOSA MLIR graph in **Cell 3**.
+* **Verify IR**: Run **Cell 4** to execute the optimizer and verify that your pattern triggers as expected.
+* **Microbenchmark**: Use **Cell 7** to run the C++ inference verification and check the performance delta of your new optimization on the advisor models.
+
+### 3. Validate
+Run the integrated test runner to ensure no regressions:
+```bash
+python3 tests/run_tests.py
+```
+
